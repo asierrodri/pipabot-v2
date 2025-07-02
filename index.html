@@ -1,0 +1,56 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>PipaBot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    #respuesta {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pregunta a PipaBot 🤖</h1>
+  <input type="text" id="mensaje" placeholder="Escribe tu pregunta aquí..." />
+  <button onclick="preguntar()">Enviar</button>
+  <div id="respuesta"></div>
+
+  <script>
+    async function preguntar() {
+      const mensaje = document.getElementById('mensaje').value;
+      const respuestaDiv = document.getElementById('respuesta');
+
+      respuestaDiv.textContent = 'Pensando...';
+
+      try {
+        const res = await fetch('http://localhost:3000/preguntar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensaje })
+        });
+
+        const data = await res.json();
+        respuestaDiv.textContent = data.respuesta || data.error;
+      } catch (err) {
+        respuestaDiv.textContent = 'Error al conectar con el servidor';
+      }
+    }
+  </script>
+</body>
+</html>
