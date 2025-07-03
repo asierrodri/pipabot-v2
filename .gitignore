@@ -1,0 +1,17 @@
+# Ignorar dependencias y configuración
+node_modules/
+.env
+.DS_Store
+
+# Logs y archivos temporales
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Archivos del sistema
+*.swp
+*.swo
+
+# Editor config (si usas VSCode)
+.vscode/
