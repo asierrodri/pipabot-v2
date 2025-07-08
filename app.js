@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const promptRoutes = require('./routes/promptRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -10,6 +11,7 @@ app.use(express.json());
 
 // Cambiado aquí:
 app.use('/preguntar', promptRoutes);
+app.use('/auth', authRoutes);
 
 module.exports = app;
 

@@ -1,6 +1,7 @@
 # Ignorar dependencias y configuración
 node_modules/
 .env
+hash.js
 .DS_Store
 
 # Logs y archivos temporales
