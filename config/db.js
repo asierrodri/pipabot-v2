@@ -1,10 +1,11 @@
+require('dotenv').config();
 const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',           // Usuario por defecto de XAMPP
-  password: '',           // Vacío si no configuraste contraseña
-  database: 'pipabot'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 connection.connect(error => {
