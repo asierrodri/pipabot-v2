@@ -1,25 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+
 const promptRoutes = require('./routes/promptRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Cambiado aquí:
+// Rutas de API
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 
-module.exports = app;
+// Archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
 
-const path = require('path');
-
-// Servir el index.html desde la raíz
-app.use(express.static(path.join(__dirname)));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Rutas HTML
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+module.exports = app;
