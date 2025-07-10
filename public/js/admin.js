@@ -54,3 +54,36 @@ function cerrarSesion() {
 
 // Iniciar
 cargarUsuarios();
+
+document.getElementById('formCrearUsuario').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const username = document.getElementById('nuevoUsuario').value.trim();
+  const password = document.getElementById('nuevaPassword').value.trim();
+  const role = document.getElementById('nuevoRol').value;
+
+  if (!username || !password || !role) {
+    alert('Por favor completa todos los campos');
+    return;
+  }
+
+  try {
+    const res = await fetch('/admin/usuarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, role })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('mensajeUsuario').textContent = data.message;
+      document.getElementById('formCrearUsuario').reset();
+      cargarUsuarios();
+    } else {
+      alert(data.error || 'Error al crear usuario');
+    }
+  } catch (err) {
+    alert('Error al conectar con el servidor');
+  }
+});
+
