@@ -42,11 +42,17 @@ app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 
 // Archivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false // Evita servir /index.html directamente
+}));
 
 // Rutas HTML
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/index.html', verificarSesion, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/', verificarSesion, (req, res) => {
