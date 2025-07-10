@@ -13,11 +13,19 @@
 <body
   style="background-image: url('img/backgroundChat.jpg'); background-size: cover; background-attachment: fixed; background-repeat: no-repeat;">
 
-  <div class="container mt-5 p-4 rounded shadow animate__animated animate__fadeIn"
-    style="background-color: rgba(255,255,255,0.85); max-width: 600px;">
+  <div class="container mt-5 p-4 rounded shadow animate__animated animate__fadeIn d-flex flex-column"
+    style="background-color: rgba(255,255,255,0.85); max-width: 600px; height: 80vh;">
+
     <!-- Botón de cerrar sesión arriba a la derecha y saludo arriba a la izquierda -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <p class="mb-0 text-muted small">Hola, <span id="nombreUsuario"></span></p>
+      <!-- Botón de modo claro / oscuro -->
+      <!--       <div class="text-end mb-2">
+        <button id="btnModoClaro" class="btn btn-outline-secondary btn-sm" onclick="alternarModo('claro')"
+          style="display: none;">☀️</button>
+        <button id="btnModoOscuro" class="btn btn-outline-secondary btn-sm" onclick="alternarModo('oscuro')">🌙</button>
+      </div> -->
+
       <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
     </div>
 
@@ -26,16 +34,29 @@
 
     <!-- Input y botón de enviar -->
     <div class="input-group mb-3">
+      <!-- Botón de subir archivo -->
+      <button class="btn btn-outline-secondary" type="button" id="btnUpload" aria-label="Subir archivo">
+        <img src="img/upload.png" alt="Subir archivo" width="20" height="20">
+      </button>
+
+      <!-- Input de mensaje -->
       <input type="text" id="mensaje" class="form-control" placeholder="Escribe tu pregunta aquí..."
         aria-label="Mensaje">
+
+      <!-- Botón de enviar -->
       <button class="btn btn-outline-secondary" type="button" onclick="preguntar()" aria-label="Enviar">
         <img src="img/send-2.png" alt="Enviar" width="20" height="20">
       </button>
     </div>
 
+    <!-- Input de tipo archivo oculto -->
+    <input type="file" id="archivo" hidden>
+    <!-- Muestra el nombre del archivo seleccionado -->
+    <div id="archivoNombre" class="text-muted small mb-2"></div>
 
     <!-- Respuesta del bot -->
-    <div id="chat" class="d-flex flex-column gap-2 p-2" style="max-height: 300px; overflow-y: auto;"></div>
+    <div id="chat" class="d-flex flex-column gap-2 p-2 flex-grow-1 overflow-auto" style="min-height: 300px;"></div>
+
 
   </div>
 

@@ -160,17 +160,20 @@ Normas y orden de montaje:
 
 -- Si todo está bien, guardar la escena y siguiente banda para probar.`;
 
-const askGemini = async (userMessage) => {
-  const body = {
-    contents: [
-      { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-      { role: "user", parts: [{ text: userMessage }] }
-    ]
-  };
+const askGemini = async (historial) => {
+  const contents = [
+    { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
+  ];
 
-  const response = await axios.post(GEMINI_API_URL, body);
-  const reply = response.data.candidates[0].content.parts[0].text;
-  return reply;
+  for (const mensaje of historial) {
+    contents.push({
+      role: mensaje.role === 'user' ? 'user' : 'model',
+      parts: [{ text: mensaje.text }]
+    });
+  }
+
+  const response = await axios.post(GEMINI_API_URL, { contents });
+  return response.data.candidates[0].content.parts[0].text;
 };
 
 module.exports = { askGemini };

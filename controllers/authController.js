@@ -18,7 +18,9 @@ const login = (req, res) => {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
 
-    // Aquí podrías generar un token en el futuro
+    // ✅ Guardar sesión
+    req.session.user = { username: user.username };
+
     res.status(200).json({ message: 'Login exitoso', username: user.username });
   });
 };

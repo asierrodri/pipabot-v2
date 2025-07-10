@@ -14,7 +14,6 @@ document.getElementById('loginForm').addEventListener('submit', async function (
 
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem('username', data.username); // Guardar el login (opcional)
       window.location.href = '/index.html'; // Redirige tras login
     } else {
       responseDiv.textContent = data.error || 'Error en el inicio de sesión';
