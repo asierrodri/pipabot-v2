@@ -108,10 +108,15 @@ async function preguntar() {
 
 // Cerrar sesión
 async function cerrarSesion() {
+  // 🔄 Eliminar historial local
+  localStorage.removeItem('historial');
+
+  // 🔐 Cerrar sesión en el backend
   await fetch('/auth/logout', { method: 'POST' });
+
+  // 🚪 Redirigir a login
   window.location.href = '/login.html';
 }
-
 
 // Enviar con Enter
 document.getElementById('mensaje').addEventListener('keydown', function (event) {
