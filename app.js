@@ -41,10 +41,24 @@ app.use('/preguntar', (req, res, next) => {
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 
-// Archivos estáticos
-app.use(express.static(path.join(__dirname, 'public'), {
-  index: false // Evita servir /index.html directamente
-}));
+app.use((req, res, next) => {
+  const ruta = req.path;
+  const publico = ['/login.html', '/login', '/auth/login', '/css/', '/js/', '/img/'];
+
+  // Permitir acceso a rutas públicas
+  if (publico.some(p => ruta.startsWith(p))) {
+    return express.static(path.join(__dirname, 'public'))(req, res, next);
+  }
+
+  // Si el usuario ha iniciado sesión, permitir acceso a estáticos
+  if (req.session.user) {
+    return express.static(path.join(__dirname, 'public'))(req, res, next);
+  }
+
+  // Si no ha iniciado sesión, redirigir a login
+  res.redirect('/login.html');
+});
+
 
 // Rutas HTML
 app.get('/login', (req, res) => {
