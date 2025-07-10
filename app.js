@@ -18,7 +18,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 2
+    maxAge: 1000 * 60 * 60 * 2 // 2 horas
   }
 }));
 
@@ -41,24 +41,15 @@ app.use('/preguntar', (req, res, next) => {
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 
-app.use((req, res, next) => {
-  const ruta = req.path;
-  const publico = ['/login.html', '/login', '/auth/login', '/css/', '/js/', '/img/'];
+// Archivos públicos sin login
+app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html')));
+app.use('/img', express.static(path.join(__dirname, 'public', 'img')));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js/login.js', express.static(path.join(__dirname, 'public', 'js', 'login.js')));
 
-  // Permitir acceso a rutas públicas
-  if (publico.some(p => ruta.startsWith(p))) {
-    return express.static(path.join(__dirname, 'public'))(req, res, next);
-  }
-
-  // Si el usuario ha iniciado sesión, permitir acceso a estáticos
-  if (req.session.user) {
-    return express.static(path.join(__dirname, 'public'))(req, res, next);
-  }
-
-  // Si no ha iniciado sesión, redirigir a login
-  res.redirect('/login.html');
-});
-
+// Archivos protegidos (solo si hay sesión)
+app.use('/index.html', verificarSesion, express.static(path.join(__dirname, 'public', 'index.html')));
+app.use('/js/index.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'index.js')));
 
 // Rutas HTML
 app.get('/login', (req, res) => {
