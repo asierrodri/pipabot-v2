@@ -10,6 +10,14 @@ fetch('/auth/usuario')
     console.error('Error al obtener el nombre de usuario:', err);
   });
 
+if (data.username) {
+  document.getElementById('nombreUsuario').textContent = data.username;
+
+  if (localStorage.getItem('role') === 'admin') {
+    document.getElementById('enlaceAdmin').style.display = 'inline-block';
+  }
+}
+
 // Cargar historial si existe
 let historial = JSON.parse(localStorage.getItem('historial')) || [];
 
