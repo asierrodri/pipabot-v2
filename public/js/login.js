@@ -14,7 +14,12 @@ document.getElementById('loginForm').addEventListener('submit', async function (
 
     const data = await res.json();
     if (res.ok) {
-      window.location.href = '/index.html'; // Redirige tras login
+      // Guardar en localStorage
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('role', data.role);
+
+      // Redirigir según rol
+      window.location.href = data.role === 'admin' ? '/admin.html' : '/index.html';
     } else {
       responseDiv.textContent = data.error || 'Error en el inicio de sesión';
     }

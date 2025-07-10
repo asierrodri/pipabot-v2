@@ -19,9 +19,9 @@ const login = (req, res) => {
     }
 
     // ✅ Guardar sesión
-    req.session.user = { username: user.username };
+    req.session.user = { username: user.username, role: user.role };
 
-    res.status(200).json({ message: 'Login exitoso', username: user.username });
+    res.status(200).json({ message: 'Login exitoso', username: user.username, role: user.role });
   });
 };
 

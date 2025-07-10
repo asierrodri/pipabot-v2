@@ -6,6 +6,7 @@ const path = require('path');
 
 const promptRoutes = require('./routes/promptRoutes');
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/preguntar', (req, res, next) => {
 });
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
+app.use('/admin', verificarSesion, adminRoutes);
 
 // Archivos públicos sin login
 app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html')));
@@ -50,6 +52,8 @@ app.use('/js/login.js', express.static(path.join(__dirname, 'public', 'js', 'log
 // Archivos protegidos (solo si hay sesión)
 app.use('/index.html', verificarSesion, express.static(path.join(__dirname, 'public', 'index.html')));
 app.use('/js/index.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'index.js')));
+app.use('/admin.html', verificarSesion, express.static(path.join(__dirname, 'public', 'admin.html')));
+app.use('/js/admin.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'admin.js')));
 
 // Rutas HTML
 app.get('/login', (req, res) => {
@@ -62,6 +66,10 @@ app.get('/index.html', verificarSesion, (req, res) => {
 
 app.get('/', verificarSesion, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/admin', verificarSesion, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 module.exports = app;
