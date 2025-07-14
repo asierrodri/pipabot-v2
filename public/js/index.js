@@ -233,3 +233,36 @@ document.getElementById('archivo').addEventListener('change', (e) => {
     ? `Archivo seleccionado: ${archivo.name}`
     : '';
 });
+
+//hablar
+function escuchar() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert('Tu navegador no soporta reconocimiento por voz');
+    return;
+  }
+
+  const reconocimiento = new webkitSpeechRecognition();
+  reconocimiento.lang = 'es-ES';
+  reconocimiento.interimResults = false;
+  reconocimiento.maxAlternatives = 1;
+
+  reconocimiento.onstart = () => {
+    console.log('🎙️ Escuchando...');
+  };
+
+  reconocimiento.onresult = (event) => {
+    const texto = event.results[0][0].transcript;
+    console.log('✅ Reconocido:', texto);
+
+    const input = document.getElementById('mensaje');
+    input.value = texto;
+    preguntar(); // enviar automáticamente
+  };
+
+  reconocimiento.onerror = (event) => {
+    console.error('❌ Error en reconocimiento:', event.error);
+  };
+
+  reconocimiento.start();
+}
+
