@@ -60,4 +60,49 @@ router.post('/usuarios', async (req, res) => {
   }
 });
 
+//Editar Usuarios
+router.put('/usuarios/:id', async (req, res) => {
+  const id = req.params.id;
+  const { username, password, role } = req.body;
+
+  if (!username || !role) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios' });
+  }
+
+  try {
+    // Verificar si hay otro usuario con el mismo nombre
+    db.query('SELECT * FROM users WHERE username = ? AND id != ?', [username, id], async (err, results) => {
+      if (err) return res.status(500).json({ error: 'Error al verificar duplicado' });
+      if (results.length > 0) return res.status(409).json({ error: 'Ese usuario ya existe' });
+
+      // Si no hay duplicado, continuamos
+      // Si se incluye contraseña, la hasheamos y la actualizamos
+      if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        db.query(
+          'UPDATE users SET username = ?, password_hash = ?, role = ? WHERE id = ?',
+          [username, hashedPassword, role, id],
+          (err) => {
+            if (err) return res.status(500).json({ error: 'Error al actualizar usuario' });
+            res.json({ message: 'Usuario actualizado' });
+          }
+        );
+      } else {
+        db.query(
+          'UPDATE users SET username = ?, role = ? WHERE id = ?',
+          [username, role, id],
+          (err) => {
+            if (err) return res.status(500).json({ error: 'Error al actualizar usuario' });
+            res.json({ message: 'Usuario actualizado' });
+          }
+        );
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+
+});
+
+
 module.exports = router;
