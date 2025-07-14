@@ -1,10 +1,11 @@
-// Mostrar nombre de usuario en pantalla
+// =========================
+// 👤 Mostrar nombre de usuario y rol admin
+// =========================
 fetch('/auth/usuario')
   .then(res => res.json())
   .then(data => {
     if (data.username) {
       document.getElementById('nombreUsuario').textContent = data.username;
-
       if (localStorage.getItem('role') === 'admin') {
         document.getElementById('enlaceAdmin').style.display = 'inline-block';
       }
@@ -14,14 +15,26 @@ fetch('/auth/usuario')
     console.error('Error al obtener el nombre de usuario:', err);
   });
 
-// Cargar historial si existe
+// =========================
+// 💬 Historial de mensajes (localStorage)
+// =========================
 let historial = JSON.parse(localStorage.getItem('historial')) || [];
 
-// Mostrar historial al cargar
+// =========================
+// 🚀 Ejecutar al cargar página
+// =========================
 window.addEventListener('DOMContentLoaded', () => {
   const modoGuardado = localStorage.getItem('modo') || 'claro';
   alternarModo(modoGuardado);
 
+  // ✅ Si no hay preferencia de voz, activarla por defecto
+  if (localStorage.getItem('vozActivada') === null) {
+    localStorage.setItem('vozActivada', 'true');
+  }
+
+  actualizarBotonVoz();
+
+  // Mostrar historial
   const chat = document.getElementById('chat');
   for (const msg of historial) {
     const burbuja = document.createElement('div');
@@ -44,10 +57,53 @@ window.addEventListener('DOMContentLoaded', () => {
       `;
     chat.appendChild(burbuja);
   }
+
   chat.scrollTop = chat.scrollHeight;
 });
 
-// Función para preguntar a PipaBot
+// =========================
+// 🗣️ Hablar si voz activada
+// =========================
+function hablar(texto) {
+  const activada = localStorage.getItem('vozActivada') === 'true';
+  if (!activada) return;
+
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    speechSynthesis.speak(utterance);
+  }
+}
+
+// =========================
+// 🔁 Actualizar botón de voz (texto y estilo)
+// =========================
+function actualizarBotonVoz() {
+  const btn = document.getElementById('toggleVoz');
+  if (!btn) return;
+
+  const activada = localStorage.getItem('vozActivada') === 'true';
+
+  btn.className = 'btn btn-sm';
+  btn.classList.add(activada ? 'btn-outline-primary' : 'btn-outline-secondary');
+  btn.textContent = activada ? '🔈 Voz activada' : '🔇 Voz desactivada';
+}
+
+// =========================
+// 🔘 Alternar voz y guardar preferencia
+// =========================
+function alternarVoz() {
+  const actual = localStorage.getItem('vozActivada') === 'true';
+  const nuevo = !actual;
+  localStorage.setItem('vozActivada', nuevo.toString());
+  actualizarBotonVoz();
+}
+
+// =========================
+// 📤 Preguntar a PipaBot
+// =========================
 async function preguntar() {
   const mensajeInput = document.getElementById('mensaje');
   const mensaje = mensajeInput.value.trim();
@@ -62,6 +118,7 @@ async function preguntar() {
   archivoInput.value = '';
   archivoSeleccionado = null;
 
+  // Mostrar mensaje del usuario
   const burbujaUsuario = document.createElement('div');
   burbujaUsuario.className = 'd-flex justify-content-end w-100 align-items-end gap-2';
   burbujaUsuario.innerHTML = `
@@ -72,6 +129,7 @@ async function preguntar() {
   `;
   chat.appendChild(burbujaUsuario);
 
+  // Mostrar "..." del bot mientras responde
   const burbujaBot = document.createElement('div');
   burbujaBot.className = 'd-flex justify-content-start w-100 align-items-end gap-2';
   burbujaBot.innerHTML = `
@@ -86,7 +144,7 @@ async function preguntar() {
   const formData = new FormData();
   if (mensaje) formData.append('mensaje', mensaje);
   if (archivo) formData.append('archivo', archivo);
-  formData.append('historial', JSON.stringify(historial)); // ✅ Enviar historial completo
+  formData.append('historial', JSON.stringify(historial));
 
   try {
     const res = await fetch('/preguntar', {
@@ -98,7 +156,9 @@ async function preguntar() {
 
     burbujaBot.querySelector('div').textContent = data.respuesta || data.error;
 
-    // ✅ Guardar en historial actualizado
+    if (data.respuesta) hablar(data.respuesta); // 🗣️
+
+    // Guardar en historial local
     historial.push({ role: 'user', text: mensaje || `[Archivo: ${archivo?.name}]` });
     historial.push({ role: 'model', text: data.respuesta || data.error });
     localStorage.setItem('historial', JSON.stringify(historial));
@@ -110,10 +170,14 @@ async function preguntar() {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// Cerrar sesión
+// =========================
+// ⛔ Cerrar sesión
+// =========================
 async function cerrarSesion() {
-  // 🔄 Eliminar historial local
+  // 🔄 Eliminar historial y preferencias locales
   localStorage.removeItem('historial');
+  localStorage.removeItem('modo');           // ⬅️ reset modo claro/oscuro
+  localStorage.removeItem('vozActivada');    // ⬅️ reset voz
 
   // 🔐 Cerrar sesión en el backend
   await fetch('/auth/logout', { method: 'POST' });
@@ -122,7 +186,9 @@ async function cerrarSesion() {
   window.location.href = '/login.html';
 }
 
-// Enviar con Enter
+// =========================
+// ⌨️ Enviar mensaje con Enter
+// =========================
 document.getElementById('mensaje').addEventListener('keydown', function (event) {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -130,7 +196,9 @@ document.getElementById('mensaje').addEventListener('keydown', function (event) 
   }
 });
 
-// Alternar modo claro/oscuro
+// =========================
+// 🌞🌙 Modo claro / oscuro
+// =========================
 function alternarModo(modo) {
   const body = document.body;
 
@@ -147,7 +215,9 @@ function alternarModo(modo) {
   }
 }
 
-// Manejo del input de archivo
+// =========================
+// 📎 Subir archivo
+// =========================
 let archivoSeleccionado = null;
 
 document.getElementById('btnUpload').addEventListener('click', () => {
@@ -159,9 +229,7 @@ document.getElementById('archivo').addEventListener('change', (e) => {
   archivoSeleccionado = archivo;
 
   const archivoNombre = document.getElementById('archivoNombre');
-  if (archivo) {
-    archivoNombre.textContent = `Archivo seleccionado: ${archivo.name}`;
-  } else {
-    archivoNombre.textContent = '';
-  }
+  archivoNombre.textContent = archivo
+    ? `Archivo seleccionado: ${archivo.name}`
+    : '';
 });

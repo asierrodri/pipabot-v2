@@ -19,15 +19,19 @@
     <!-- Botón de cerrar sesión arriba a la derecha y saludo arriba a la izquierda -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <p class="mb-0 text-muted small">Hola, <span id="nombreUsuario"></span></p>
-      <!-- Botón de modo claro / oscuro -->
-      <!--       <div class="text-end mb-2">
+
+
+
+      <div class="d-flex gap-2">
+        <!-- Botón de modo claro / oscuro -->
         <button id="btnModoClaro" class="btn btn-outline-secondary btn-sm" onclick="alternarModo('claro')"
           style="display: none;">☀️</button>
         <button id="btnModoOscuro" class="btn btn-outline-secondary btn-sm" onclick="alternarModo('oscuro')">🌙</button>
-      </div> -->
-
-      <div>
-        <a href="/admin" id="enlaceAdmin" class="btn btn-outline-secondary btn-sm me-2" style="display: none;">Panel
+        <!-- Botón de voz -->
+        <button id="toggleVoz" class="btn btn-outline-primary btn-sm" onclick="alternarVoz()">
+          🔈 Voz activada
+        </button>
+        <a href="/admin" id="enlaceAdmin" class="btn btn-outline-secondary btn-sm" style="display: none;">Panel
           Admin</a>
         <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
       </div>
