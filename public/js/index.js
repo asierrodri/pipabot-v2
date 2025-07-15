@@ -23,18 +23,17 @@ let historial = JSON.parse(localStorage.getItem('historial')) || [];
 // =========================
 // 🚀 Ejecutar al cargar página
 // =========================
-window.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   const modoGuardado = localStorage.getItem('modo') || 'claro';
   alternarModo(modoGuardado);
 
-  // ✅ Si no hay preferencia de voz, activarla por defecto
   if (localStorage.getItem('vozActivada') === null) {
     localStorage.setItem('vozActivada', 'true');
   }
 
   actualizarBotonVoz();
 
-  // Mostrar historial
+  // Mostrar historial con hora
   const chat = document.getElementById('chat');
   for (const msg of historial) {
     const burbuja = document.createElement('div');
@@ -42,23 +41,45 @@ window.addEventListener('DOMContentLoaded', () => {
       ? 'd-flex justify-content-end w-100 align-items-end gap-2'
       : 'd-flex justify-content-start w-100 align-items-end gap-2';
 
+    const hora = msg.timestamp
+      ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    const contenido = `
+      <div class="small ${msg.role === 'user' ? 'text-white-50 text-end' : 'text-muted'} mb-1">${hora}</div>
+      ${msg.text}
+    `;
+
     burbuja.innerHTML = msg.role === 'user'
       ? `
         <div class="bg-primary text-white p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
-          ${msg.text}
+          ${contenido}
         </div>
         <img src="img/usuario.png" alt="Usuario" class="rounded-circle" width="32" height="32">
       `
       : `
         <img src="img/maquina.png" alt="Bot" class="rounded-circle" width="32" height="32">
         <div class="bg-light text-dark p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
-          ${msg.text}
+          ${contenido}
         </div>
       `;
     chat.appendChild(burbuja);
   }
 
   chat.scrollTop = chat.scrollHeight;
+
+
+  // Listener botones del menú
+  document.getElementById('btnAlternarModo')?.addEventListener('click', () => {
+    const modoActual = localStorage.getItem('modo') === 'oscuro' ? 'claro' : 'oscuro';
+    alternarModo(modoActual);
+  });
+
+  document.getElementById('btnAlternarVoz')?.addEventListener('click', alternarVoz);
+
+  if (localStorage.getItem('role') === 'admin') {
+    document.getElementById('enlaceAdminMenu').style.display = 'block';
+  }
 });
 
 // =========================
@@ -81,14 +102,12 @@ function hablar(texto) {
 // 🔁 Actualizar botón de voz (texto y estilo)
 // =========================
 function actualizarBotonVoz() {
-  const btn = document.getElementById('toggleVoz');
-  if (!btn) return;
-
   const activada = localStorage.getItem('vozActivada') === 'true';
 
-  btn.className = 'btn btn-sm';
-  btn.classList.add(activada ? 'btn-outline-primary' : 'btn-outline-secondary');
-  btn.textContent = activada ? '🔈 Voz activada' : '🔇 Voz desactivada';
+  const btnMenu = document.getElementById('btnAlternarVoz');
+  if (btnMenu) {
+    btnMenu.textContent = activada ? 'Desactivar voz' : 'Activar voz';
+  }
 }
 
 // =========================
@@ -99,6 +118,11 @@ function alternarVoz() {
   const nuevo = !actual;
   localStorage.setItem('vozActivada', nuevo.toString());
   actualizarBotonVoz();
+
+  // Si se desactiva la voz, detener inmediatamente cualquier síntesis en curso
+  if (!nuevo && 'speechSynthesis' in window) {
+    speechSynthesis.cancel();
+  }
 }
 
 // =========================
@@ -113,21 +137,30 @@ async function preguntar() {
 
   if (!mensaje && !archivo) return;
 
+  // 🔸 Capturar nombre del archivo antes de resetear input
+  const nombreArchivo = archivo ? archivo.name : null;
+
   mensajeInput.value = '';
   document.getElementById('archivoNombre').textContent = '';
   archivoInput.value = '';
   archivoSeleccionado = null;
 
   // Mostrar mensaje del usuario
+  const textoUsuario = mensaje || `[Archivo enviado: ${nombreArchivo}]`;
+
+  const horaUsuario = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
   const burbujaUsuario = document.createElement('div');
   burbujaUsuario.className = 'd-flex justify-content-end w-100 align-items-end gap-2';
   burbujaUsuario.innerHTML = `
     <div class="bg-primary text-white p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
-      ${mensaje || '[Archivo enviado]'}
+      <div class="small text-white-50 text-end mb-1">${horaUsuario}</div>
+      ${textoUsuario}
     </div>
     <img src="img/usuario.png" alt="Usuario" class="rounded-circle" width="32" height="32">
   `;
   chat.appendChild(burbujaUsuario);
+
 
   // Mostrar "..." del bot mientras responde
   const burbujaBot = document.createElement('div');
@@ -135,9 +168,10 @@ async function preguntar() {
   burbujaBot.innerHTML = `
     <img src="img/maquina.png" alt="Bot" class="rounded-circle" width="32" height="32">
     <div class="bg-light text-dark p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
-      ...
+      <div class="typing"><span>.</span><span>.</span><span>.</span></div>
     </div>
   `;
+
   chat.appendChild(burbujaBot);
   chat.scrollTop = chat.scrollHeight;
 
@@ -154,13 +188,20 @@ async function preguntar() {
 
     const data = await res.json();
 
-    burbujaBot.querySelector('div').textContent = data.respuesta || data.error;
+    const horaBot = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    if (data.respuesta) hablar(data.respuesta); // 🗣️
+    burbujaBot.querySelector('div').innerHTML = `
+    <div class="small text-muted mb-1">${horaBot}</div>
+    ${data.respuesta || data.error}
+  `;
 
-    // Guardar en historial local
-    historial.push({ role: 'user', text: mensaje || `[Archivo: ${archivo?.name}]` });
-    historial.push({ role: 'model', text: data.respuesta || data.error });
+
+    if (data.respuesta) hablar(data.respuesta);
+
+    // Guardar en historial correctamente
+    const timestamp = new Date().toISOString();
+    historial.push({ role: 'user', text: textoUsuario, timestamp });
+    historial.push({ role: 'model', text: data.respuesta || data.error, timestamp: new Date().toISOString() });
     localStorage.setItem('historial', JSON.stringify(historial));
 
   } catch (err) {
@@ -205,13 +246,11 @@ function alternarModo(modo) {
   if (modo === 'oscuro') {
     body.style.backgroundImage = "url('img/backgroundChatDark.png')";
     localStorage.setItem('modo', 'oscuro');
-    document.getElementById('btnModoOscuro').style.display = 'none';
-    document.getElementById('btnModoClaro').style.display = 'inline-block';
+    document.getElementById('btnAlternarModo').textContent = 'Modo claro';
   } else {
     body.style.backgroundImage = "url('img/backgroundChat.jpg')";
     localStorage.setItem('modo', 'claro');
-    document.getElementById('btnModoClaro').style.display = 'none';
-    document.getElementById('btnModoOscuro').style.display = 'inline-block';
+    document.getElementById('btnAlternarModo').textContent = 'Modo oscuro';
   }
 }
 
@@ -261,8 +300,36 @@ function escuchar() {
 
   reconocimiento.onerror = (event) => {
     console.error('❌ Error en reconocimiento:', event.error);
+    if (event.error === 'not-allowed') {
+      alert('Permiso de micrófono denegado. Actívalo en la configuración del navegador.');
+    } else if (event.error === 'no-speech') {
+      alert('No se detectó voz. Asegúrate de tener un micrófono conectado y habla claramente.');
+    } else if (event.error === 'audio-capture') {
+      alert('No se detectó ningún micrófono. Conecta uno y vuelve a intentarlo.');
+    } else {
+      alert('Error de reconocimiento de voz: ' + event.error);
+    }
   };
 
   reconocimiento.start();
 }
 
+// 🗑 Nueva conversación (botón normal y menú hamburguesa)
+function borrarConversacion() {
+  if (!confirm('¿Seguro que quieres borrar todo el historial de la conversación?')) return;
+
+  // Detener cualquier voz en curso
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+  }
+
+  // Borrar historial
+  localStorage.removeItem('historial');
+  historial = [];
+
+  // Vaciar visualmente el chat
+  document.getElementById('chat').innerHTML = '';
+}
+
+document.getElementById('btnNuevaConversacion')?.addEventListener('click', borrarConversacion);
+document.getElementById('btnNuevaConversacionMenu')?.addEventListener('click', borrarConversacion);
