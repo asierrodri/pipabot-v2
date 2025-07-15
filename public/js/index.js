@@ -24,6 +24,8 @@ let historial = JSON.parse(localStorage.getItem('historial')) || [];
 // 🚀 Ejecutar al cargar página
 // =========================
 document.addEventListener('DOMContentLoaded', () => {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+
   const modoGuardado = localStorage.getItem('modo') || 'claro';
   alternarModo(modoGuardado);
 
@@ -92,11 +94,25 @@ function hablar(texto) {
   if ('speechSynthesis' in window) {
     const utterance = new SpeechSynthesisUtterance(texto);
     utterance.lang = 'es-ES';
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    speechSynthesis.speak(utterance);
+    utterance.rate = 1.2;
+    utterance.pitch = 1.1;
+
+    // Intentar seleccionar una voz española más natural (Google si está disponible)
+    const seleccionarVoz = () => {
+      const voces = speechSynthesis.getVoices();
+      const vozNatural = voces.find(v => v.lang.startsWith('es') && v.name.includes('Google'));
+      if (vozNatural) utterance.voice = vozNatural;
+      speechSynthesis.speak(utterance);
+    };
+
+    if (speechSynthesis.getVoices().length === 0) {
+      speechSynthesis.onvoiceschanged = seleccionarVoz;
+    } else {
+      seleccionarVoz();
+    }
   }
 }
+
 
 // =========================
 // 🔁 Actualizar botón de voz (texto y estilo)
@@ -181,6 +197,7 @@ async function preguntar() {
   formData.append('historial', JSON.stringify(historial));
 
   try {
+    if ('speechSynthesis' in window) speechSynthesis.cancel(); // ⬅️ Detener voz si el usuario manda otra pregunta
     const res = await fetch('/preguntar', {
       method: 'POST',
       body: formData
@@ -196,7 +213,11 @@ async function preguntar() {
   `;
 
 
-    if (data.respuesta) hablar(data.respuesta);
+    if (data.respuesta) {
+      if ('speechSynthesis' in window) speechSynthesis.cancel(); // Detener cualquier habla en curso
+      hablar(data.respuesta);
+    }
+
 
     // Guardar en historial correctamente
     const timestamp = new Date().toISOString();
