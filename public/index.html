@@ -76,6 +76,10 @@
     <!-- Respuesta del bot -->
     <div id="chat" class="d-flex flex-column gap-2 p-2 flex-grow-1 overflow-auto" style="min-height: 300px;"></div>
 
+    <!-- Input de tipo archivo oculto -->
+    <input type="file" id="archivo" hidden>
+    <!-- Muestra el nombre del archivo seleccionado -->
+    <div id="archivoNombre" class="text-muted small mb-2"></div>
     <!-- Input y botón de enviar -->
     <div class="input-group mb-3">
       <!-- Botón de subir archivo -->
@@ -97,10 +101,7 @@
       </button>
 
     </div>
-    <!-- Input de tipo archivo oculto -->
-    <input type="file" id="archivo" hidden>
-    <!-- Muestra el nombre del archivo seleccionado -->
-    <div id="archivoNombre" class="text-muted small mb-2"></div>
+    
   </div>
 
   <script src="js/index.js"></script>
