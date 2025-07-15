@@ -153,16 +153,13 @@ async function preguntar() {
 
   if (!mensaje && !archivo) return;
 
-  // 🔸 Capturar nombre del archivo antes de resetear input
-  const nombreArchivo = archivo ? archivo.name : null;
-
-  mensajeInput.value = '';
-  document.getElementById('archivoNombre').textContent = '';
-  archivoInput.value = '';
-  archivoSeleccionado = null;
-
-  // Mostrar mensaje del usuario
-  const textoUsuario = mensaje || `[Archivo enviado: ${nombreArchivo}]`;
+  // 🔸 Construir texto que se mostrará en la burbuja del usuario
+  let textoUsuario = '';
+  if (mensaje) textoUsuario += mensaje;
+  if (archivo) {
+    textoUsuario += mensaje ? '\n\n' : '';
+    textoUsuario += `[Archivo adjunto: ${archivo.name}]`;
+  }
 
   const horaUsuario = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -177,8 +174,9 @@ async function preguntar() {
   `;
   chat.appendChild(burbujaUsuario);
 
+  mensajeInput.value = '';
 
-  // Mostrar "..." del bot mientras responde
+  // Mostrar burbuja "..." mientras responde
   const burbujaBot = document.createElement('div');
   burbujaBot.className = 'd-flex justify-content-start w-100 align-items-end gap-2';
   burbujaBot.innerHTML = `
@@ -187,17 +185,18 @@ async function preguntar() {
       <div class="typing"><span>.</span><span>.</span><span>.</span></div>
     </div>
   `;
-
   chat.appendChild(burbujaBot);
   chat.scrollTop = chat.scrollHeight;
 
+  // Preparar FormData para enviar al servidor
   const formData = new FormData();
   if (mensaje) formData.append('mensaje', mensaje);
   if (archivo) formData.append('archivo', archivo);
   formData.append('historial', JSON.stringify(historial));
 
   try {
-    if ('speechSynthesis' in window) speechSynthesis.cancel(); // ⬅️ Detener voz si el usuario manda otra pregunta
+    if ('speechSynthesis' in window) speechSynthesis.cancel(); // Detener voz si ya está hablando
+
     const res = await fetch('/preguntar', {
       method: 'POST',
       body: formData
@@ -208,18 +207,16 @@ async function preguntar() {
     const horaBot = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     burbujaBot.querySelector('div').innerHTML = `
-    <div class="small text-muted mb-1">${horaBot}</div>
-    ${data.respuesta || data.error}
-  `;
-
+      <div class="small text-muted mb-1">${horaBot}</div>
+      ${data.respuesta || data.error}
+    `;
 
     if (data.respuesta) {
-      if ('speechSynthesis' in window) speechSynthesis.cancel(); // Detener cualquier habla en curso
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
       hablar(data.respuesta);
     }
 
-
-    // Guardar en historial correctamente
+    // Guardar historial
     const timestamp = new Date().toISOString();
     historial.push({ role: 'user', text: textoUsuario, timestamp });
     historial.push({ role: 'model', text: data.respuesta || data.error, timestamp: new Date().toISOString() });
@@ -228,6 +225,11 @@ async function preguntar() {
   } catch (err) {
     burbujaBot.querySelector('div').textContent = 'Error al conectar con el servidor';
   }
+
+  // 🧹 Limpiar inputs después de enviar
+  document.getElementById('archivoNombre').textContent = '';
+  archivoInput.value = '';
+  archivoSeleccionado = null;
 
   chat.scrollTop = chat.scrollHeight;
 }
