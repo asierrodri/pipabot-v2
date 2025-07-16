@@ -65,7 +65,9 @@
           <li><button class="dropdown-item" id="btnAlternarModo">Modo oscuro</button></li>
           <li><button class="dropdown-item" id="btnAlternarVoz">Desactivar voz</button></li>
           <li><button class="dropdown-item" id="btnNuevaConversacionMenu">Nueva conversación</button></li>
-          <li><a class="dropdown-item" href="/admin" id="enlaceAdminMenu" style="display: none;">Panel admin</a></li>
+          <li><button class="dropdown-item" onclick="irAlPanelAdmin()" id="enlaceAdminMenu" style="display: none;">Panel
+              admin</button>
+          </li>
           <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
         </ul>
       </div>
@@ -101,7 +103,7 @@
       </button>
 
     </div>
-    
+
   </div>
 
   <script src="js/index.js"></script>

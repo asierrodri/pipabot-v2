@@ -238,6 +238,8 @@ async function preguntar() {
 // ⛔ Cerrar sesión
 // =========================
 async function cerrarSesion() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel(); // Cortar voz al cerrar sesión
+
   // 🔄 Eliminar historial y preferencias locales
   localStorage.removeItem('historial');
   localStorage.removeItem('modo');           // ⬅️ reset modo claro/oscuro
@@ -356,3 +358,9 @@ function borrarConversacion() {
 
 document.getElementById('btnNuevaConversacion')?.addEventListener('click', borrarConversacion);
 document.getElementById('btnNuevaConversacionMenu')?.addEventListener('click', borrarConversacion);
+
+function irAlPanelAdmin() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel(); // ⬅️ Detener voz al ir al admin
+  window.location.href = '/admin';
+}
+
