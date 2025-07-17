@@ -15,14 +15,23 @@ async function cargarUsuarios() {
     usuarios.forEach(user => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${user.id}</td>
-        <td>${user.username}</td>
-        <td>${user.role}</td>
-        <td>
-          <button class="btn btn-sm btn-warning me-2" onclick="abrirModalEditar(${user.id}, '${user.username}', '${user.role}')">Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${user.id})">Eliminar</button>
-        </td>
+      <td>${user.id}</td>
+      <td>${user.username}</td>
+      <td>${user.role}</td>
+      <td>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        Opciones
+          </button>
+          <ul class="dropdown-menu">
+            <li><button class="dropdown-item" onclick="verConversacionesUsuario('${user.username}')">Ver conversaciones</button></li>
+            <li><button class="dropdown-item" onclick="abrirModalEditar(${user.id}, '${user.username}', '${user.role}')">Editar</button></li>
+            <li><button class="dropdown-item text-danger" onclick="eliminarUsuario(${user.id})">Eliminar</button></li>
+          </ul>
+        </div>
+      </td>
       `;
+
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -135,5 +144,168 @@ document.getElementById('formEditarUsuario').addEventListener('submit', async fu
     }
   } catch (err) {
     alert('Error al conectar con el servidor');
+  }
+});
+
+async function verConversacionesUsuario(username) {
+  document.getElementById('nombreHistorialAdmin').textContent = username;
+  const lista = document.getElementById('listaHistorialesUsuario');
+  lista.innerHTML = '<li class="list-group-item text-muted">Cargando...</li>';
+
+  try {
+    const res = await fetch(`/auth/historiales/usuario/${username}`);
+    const historiales = await res.json();
+
+    if (!Array.isArray(historiales) || historiales.length === 0) {
+      lista.innerHTML = '<li class="list-group-item text-muted">No hay historiales guardados</li>';
+    } else {
+      lista.innerHTML = '';
+      historiales.forEach(hist => {
+        const fecha = new Date(hist.fecha).toLocaleString();
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <span style="cursor: pointer;" onclick="cargarHistorialAdmin(${hist.id})">
+          ${hist.titulo ? escapeHtml(hist.titulo) : `Conversación del ${fecha}`}
+        </span>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary editar-titulo-admin" 
+            data-id="${hist.id}" 
+            data-titulo="${hist.titulo ? escapeHtml(hist.titulo) : ''}">
+            Editar
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="eliminarHistorialAdmin(${hist.id}, '${username}')">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    `;
+        lista.appendChild(li);
+      });
+    }
+
+    // Mostrar siempre el modal
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHistorialesAdmin'));
+    modal.show();
+
+  } catch (err) {
+    console.error('❌ Error al obtener historiales:', err);
+    lista.innerHTML = '<li class="list-group-item text-danger">Error al cargar historiales</li>';
+  }
+}
+
+async function cargarHistorialAdmin(id) {
+  try {
+    const res = await fetch(`/auth/historiales/${id}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      alert('Error: formato de historial inválido');
+      return;
+    }
+
+    const chat = document.getElementById('chatVisualizador');
+    chat.innerHTML = '';
+
+    for (const msg of data) {
+      const burbuja = document.createElement('div');
+      burbuja.className = msg.role === 'user'
+        ? 'd-flex justify-content-end w-100 align-items-end gap-2'
+        : 'd-flex justify-content-start w-100 align-items-end gap-2';
+
+      const hora = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+
+      const contenido = `
+        <div class="small ${msg.role === 'user' ? 'text-white-50 text-end' : 'text-muted'} mb-1">${hora}</div>
+        ${msg.text}
+      `;
+
+      burbuja.innerHTML = msg.role === 'user'
+        ? `
+          <div class="bg-primary text-white p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
+            ${contenido}
+          </div>
+          <img src="img/usuario.png" alt="Usuario" class="rounded-circle" width="32" height="32">
+        `
+        : `
+          <img src="img/maquina.png" alt="Bot" class="rounded-circle" width="32" height="32">
+          <div class="bg-light text-dark p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
+            ${contenido}
+          </div>
+        `;
+
+      chat.appendChild(burbuja);
+    }
+
+    chat.scrollTop = chat.scrollHeight;
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalHistorialesAdmin'));
+    modal.hide();
+
+  } catch (err) {
+    console.error('❌ Error al cargar historial por ID:', err);
+    alert('Error al cargar la conversación seleccionada');
+  }
+}
+
+// función para evitar problemas con caracteres especiales en los títulos
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+async function eliminarHistorialAdmin(id, username) {
+  if (!confirm('¿Seguro que quieres eliminar esta conversación?')) return;
+
+  try {
+    const res = await fetch(`/auth/historiales/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (res.ok) {
+      await verConversacionesUsuario(username); // recarga
+    } else {
+      alert(data.error || 'No se pudo eliminar el historial');
+    }
+  } catch (err) {
+    console.error('❌ Error al eliminar historial (admin):', err);
+    alert('Error al eliminar historial');
+  }
+}
+
+document.addEventListener('click', function (e) {
+  if (e.target.classList.contains('editar-titulo-admin')) {
+    const id = e.target.dataset.id;
+    const tituloActual = e.target.dataset.titulo || '';
+    const nuevoTitulo = prompt('Nuevo título:', tituloActual);
+
+    if (nuevoTitulo !== null) {
+      fetch(`/auth/historiales/${id}/titulo`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titulo: nuevoTitulo })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.message) {
+            const username = document.getElementById('nombreHistorialAdmin').textContent;
+            verConversacionesUsuario(username);
+          } else {
+            alert(data.error || 'No se pudo editar el título');
+          }
+        })
+        .catch(err => {
+          console.error('❌ Error al editar título:', err);
+          alert('Error al editar título');
+        });
+    }
   }
 });

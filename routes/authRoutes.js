@@ -162,5 +162,25 @@ router.put('/historiales/:id/titulo', (req, res) => {
   );
 });
 
+router.get('/historiales/usuario/:username', (req, res) => {
+  const sessionUser = req.session?.user;
+  const targetUsername = req.params.username;
+
+  if (!sessionUser || sessionUser.role !== 'admin') {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  db.query(
+    'SELECT id, fecha, titulo FROM historiales WHERE username = ? ORDER BY fecha DESC',
+    [targetUsername],
+    (err, results) => {
+      if (err) {
+        console.error('❌ Error al obtener historiales del usuario:', err);
+        return res.status(500).json({ error: 'Error al obtener historiales' });
+      }
+      res.json(results);
+    }
+  );
+});
 
 module.exports = router;
