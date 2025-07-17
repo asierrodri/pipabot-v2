@@ -46,6 +46,7 @@ async function eliminarUsuario(id) {
 
 // Cerrar sesión
 function cerrarSesion() {
+  localStorage.removeItem('historial');
   localStorage.removeItem('username');
   localStorage.removeItem('role');
   fetch('/auth/logout', { method: 'POST' }).then(() => {

@@ -36,7 +36,8 @@ const handlePrompt = async (req, res) => {
   }
 
   try {
-    const respuesta = await askGemini(historial);
+    const username = req.session?.user?.username || 'Usuario desconocido';
+    const respuesta = await askGemini(historial, username);
     res.json({ respuesta });
   } catch (error) {
     console.error('❌ Error en el controlador:', error.message);

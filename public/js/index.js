@@ -24,6 +24,11 @@ let historial = JSON.parse(localStorage.getItem('historial')) || [];
 // 🚀 Ejecutar al cargar página
 // =========================
 document.addEventListener('DOMContentLoaded', () => {
+  // 🧹 Si no hay usuario guardado, borrar historial por seguridad
+  if (!localStorage.getItem('username')) {
+    localStorage.removeItem('historial');
+  }
+
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 
   const modoGuardado = localStorage.getItem('modo') || 'claro';
