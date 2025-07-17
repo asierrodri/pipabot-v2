@@ -33,7 +33,7 @@
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm" type="button" id="menuAdmin" data-bs-toggle="dropdown"
                     aria-expanded="false" aria-label="Menú de opciones">
-                    <img src="img/menu.svg" alt="Menú" width="20" height="20">
+                    <img src="/img/menu.svg" width="20" height="20" alt="Menú">
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAdmin">
                     <li>
@@ -41,6 +41,7 @@
                             Crear nuevo usuario
                         </button>
                     </li>
+                    <li><a class="dropdown-item" href="/admin/prompt">Gestionar prompt</a></li>
                     <li><a class="dropdown-item" href="/index.html">Volver al chat</a></li>
                     <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
                 </ul>
@@ -65,7 +66,8 @@
     <!-- zona de visualización del historial -->
     <div class="mt-5">
         <h4 class="p-3">Visualizador de conversación</h4>
-        <div id="chatVisualizador" class="container mt-5 p-4 rounded shadow d-flex flex-column gap-2 p-3 rounded shadow fondo-chat-admin overflow-auto"
+        <div id="chatVisualizador"
+            class="container mt-5 p-4 rounded shadow d-flex flex-column gap-2 p-3 rounded shadow fondo-chat-admin overflow-auto"
             style="min-height: 300px;"></div>
     </div>
     </div>

@@ -104,5 +104,66 @@ router.put('/usuarios/:id', async (req, res) => {
 
 });
 
+//Obtener todas las versiones
+router.get('/prompt/secciones', (req, res) => {
+  db.query('SELECT * FROM prompt_secciones ORDER BY seccion, version DESC', (err, results) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener prompts' });
+    res.json(results);
+  });
+});
+
+//Guardar nueva versión de una sección
+router.post('/prompt/secciones', (req, res) => {
+  const { seccion, contenido } = req.body;
+  if (!seccion || !contenido) return res.status(400).json({ error: 'Faltan datos' });
+
+  db.query(
+    'SELECT MAX(version) as maxVersion FROM prompt_secciones WHERE seccion = ?',
+    [seccion],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: 'Error al consultar versión' });
+      const nuevaVersion = (results[0].maxVersion || 0) + 1;
+
+      db.query('UPDATE prompt_secciones SET es_actual = FALSE WHERE seccion = ?', [seccion], () => {
+        db.query(
+          'INSERT INTO prompt_secciones (seccion, contenido, version, es_actual) VALUES (?, ?, ?, TRUE)',
+          [seccion, contenido, nuevaVersion],
+          (err) => {
+            if (err) return res.status(500).json({ error: 'Error al guardar nueva versión' });
+            res.json({ message: 'Prompt actualizado' });
+          }
+        );
+      });
+    }
+  );
+});
+
+//Restaurar una versión
+router.put('/prompt/secciones/:id/restaurar', (req, res) => {
+  const id = req.params.id;
+
+  db.query('SELECT * FROM prompt_secciones WHERE id = ?', [id], (err, results) => {
+    if (err || results.length === 0) return res.status(404).json({ error: 'Versión no encontrada' });
+
+    const { seccion, contenido } = results[0];
+
+    db.query('SELECT MAX(version) as maxVersion FROM prompt_secciones WHERE seccion = ?', [seccion], (err, resVer) => {
+      if (err) return res.status(500).json({ error: 'Error al obtener versión' });
+
+      const nuevaVersion = (resVer[0].maxVersion || 0) + 1;
+
+      db.query('UPDATE prompt_secciones SET es_actual = FALSE WHERE seccion = ?', [seccion], () => {
+        db.query(
+          'INSERT INTO prompt_secciones (seccion, contenido, version, es_actual) VALUES (?, ?, ?, TRUE)',
+          [seccion, contenido, nuevaVersion],
+          (err) => {
+            if (err) return res.status(500).json({ error: 'Error al restaurar' });
+            res.json({ message: 'Versión restaurada como actual' });
+          }
+        );
+      });
+    });
+  });
+});
 
 module.exports = router;

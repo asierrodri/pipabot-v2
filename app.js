@@ -34,6 +34,14 @@ function verificarSesion(req, res, next) {
   }
 }
 
+function verificarAdmin(req, res, next) {
+  if (req.session.user?.role === 'admin') {
+    next();
+  } else {
+    res.status(403).send('Acceso restringido');
+  }
+}
+
 // Rutas de API
 app.use('/preguntar', (req, res, next) => {
   if (req.session.user) next();
@@ -54,6 +62,9 @@ app.use('/index.html', verificarSesion, express.static(path.join(__dirname, 'pub
 app.use('/js/index.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'index.js')));
 app.use('/admin.html', verificarSesion, express.static(path.join(__dirname, 'public', 'admin.html')));
 app.use('/js/admin.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'admin.js')));
+app.use('/admin/prompt.html', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'prompt.html')));
+app.use('/js/prompt.js', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'js', 'prompt.js')));
+
 
 // Rutas HTML
 app.get('/login', (req, res) => {
@@ -70,6 +81,10 @@ app.get('/', verificarSesion, (req, res) => {
 
 app.get('/admin', verificarSesion, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin/prompt', verificarSesion, verificarAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'prompt.html'));
 });
 
 module.exports = app;
