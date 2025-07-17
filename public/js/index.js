@@ -7,7 +7,8 @@ fetch('/auth/usuario')
     if (data.username) {
       document.getElementById('nombreUsuario').textContent = data.username;
       if (localStorage.getItem('role') === 'admin') {
-        document.getElementById('enlaceAdmin').style.display = 'inline-block';
+        const enlaceAdmin = document.getElementById('enlaceAdmin');
+        if (enlaceAdmin) enlaceAdmin.style.display = 'inline-block';
       }
     }
   })
@@ -239,16 +240,51 @@ async function preguntar() {
   chat.scrollTop = chat.scrollHeight;
 }
 
+//Guardar historial
+async function guardarHistorial() {
+  if (!historial.length) return;
+
+  const original = localStorage.getItem('historialOriginal');
+  if (original && JSON.stringify(historial) === original) {
+    return; // ⛔ No guardar si no hay cambios
+  }
+
+  const idActual = localStorage.getItem('historialIdActual');
+  const endpoint = idActual ? `/auth/historiales/${idActual}` : '/auth/guardar-historial';
+  const method = idActual ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ historial })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.id) {
+      // Si es una conversación nueva, guarda su ID para futuras actualizaciones
+      localStorage.setItem('historialIdActual', data.id);
+    }
+    localStorage.setItem('historialOriginal', JSON.stringify(historial))
+  } catch (err) {
+    console.error('❌ Error al guardar historial:', err);
+  }
+}
+
 // =========================
 // ⛔ Cerrar sesión
 // =========================
 async function cerrarSesion() {
   if ('speechSynthesis' in window) speechSynthesis.cancel(); // Cortar voz al cerrar sesión
 
+  await guardarHistorial(); // ⬅️ Guardar antes de cerrar
+
   // 🔄 Eliminar historial y preferencias locales
   localStorage.removeItem('historial');
   localStorage.removeItem('modo');           // ⬅️ reset modo claro/oscuro
   localStorage.removeItem('vozActivada');    // ⬅️ reset voz
+  localStorage.removeItem('historialIdActual');
 
   // 🔐 Cerrar sesión en el backend
   await fetch('/auth/logout', { method: 'POST' });
@@ -345,17 +381,17 @@ function escuchar() {
 }
 
 // 🗑 Nueva conversación (botón normal y menú hamburguesa)
-function borrarConversacion() {
-  if (!confirm('¿Seguro que quieres borrar todo el historial de la conversación?')) return;
+async function borrarConversacion() {
+  // No preguntar nada, directamente guardar y borrar
+  await guardarHistorial();
 
   // Detener cualquier voz en curso
-  if ('speechSynthesis' in window) {
-    speechSynthesis.cancel();
-  }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
 
   // Borrar historial
   localStorage.removeItem('historial');
   historial = [];
+  localStorage.removeItem('historialIdActual');
 
   // Vaciar visualmente el chat
   document.getElementById('chat').innerHTML = '';
@@ -369,3 +405,187 @@ function irAlPanelAdmin() {
   window.location.href = '/admin';
 }
 
+async function abrirModalHistoriales(noAbrirModal = false) {
+  const lista = document.getElementById('listaHistoriales');
+  lista.innerHTML = '<li class="list-group-item text-muted">Cargando...</li>';
+
+  try {
+    const res = await fetch('/auth/historiales');
+    const historiales = await res.json();
+
+    lista.innerHTML = ''; // limpiar antes de rellenar
+
+    // Mostrar mensaje si no hay historiales
+    if (!Array.isArray(historiales) || historiales.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'list-group-item text-muted text-center';
+      li.textContent = 'No hay historiales guardados';
+      lista.appendChild(li);
+    } else {
+      // Mostrar lista de historiales
+      historiales.forEach(hist => {
+        const fecha = new Date(hist.fecha).toLocaleString();
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+
+        const titulo = hist.titulo || `Conversación del ${fecha}`;
+
+        const contenedor = document.createElement('div');
+        contenedor.className = 'd-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2';
+
+        const span = document.createElement('span');
+        span.textContent = titulo;
+        span.style.cursor = 'pointer';
+        span.onclick = () => cargarHistorialPorId(hist.id);
+
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn btn-sm btn-outline-secondary editar-titulo';
+        btnEditar.textContent = 'Editar';
+        btnEditar.dataset.id = hist.id;
+        btnEditar.dataset.titulo = hist.titulo || '';
+
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn btn-sm btn-outline-danger';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.onclick = () => eliminarHistorial(hist.id);
+
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'd-flex gap-2';
+        btnGroup.appendChild(btnEditar);
+        btnGroup.appendChild(btnEliminar);
+
+        contenedor.appendChild(span);
+        contenedor.appendChild(btnGroup);
+        li.appendChild(contenedor);
+        lista.appendChild(li);
+      });
+    }
+
+    if (!noAbrirModal) {
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHistoriales'));
+      modal.show();
+    }
+
+  } catch (err) {
+    console.error('❌ Error al cargar historiales:', err);
+    lista.innerHTML = '<li class="list-group-item text-danger text-center">Error al cargar historiales</li>';
+  }
+}
+
+async function cargarHistorialPorId(id) {
+  try {
+    const res = await fetch(`/auth/historiales/${id}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data)) {
+      alert('Error: formato de historial inválido');
+      return;
+    }
+
+    // Limpiar el chat y localStorage
+    historial = data;
+    localStorage.setItem('historial', JSON.stringify(historial));
+    localStorage.setItem('historialOriginal', JSON.stringify(historial));
+
+    const chat = document.getElementById('chat');
+    chat.innerHTML = '';
+
+    for (const msg of historial) {
+      const burbuja = document.createElement('div');
+      burbuja.className = msg.role === 'user'
+        ? 'd-flex justify-content-end w-100 align-items-end gap-2'
+        : 'd-flex justify-content-start w-100 align-items-end gap-2';
+
+      const hora = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+
+      const contenido = `
+        <div class="small ${msg.role === 'user' ? 'text-white-50 text-end' : 'text-muted'} mb-1">${hora}</div>
+        ${msg.text}
+      `;
+
+      burbuja.innerHTML = msg.role === 'user'
+        ? `
+          <div class="bg-primary text-white p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
+            ${contenido}
+          </div>
+          <img src="img/usuario.png" alt="Usuario" class="rounded-circle" width="32" height="32">
+        `
+        : `
+          <img src="img/maquina.png" alt="Bot" class="rounded-circle" width="32" height="32">
+          <div class="bg-light text-dark p-2 rounded shadow-sm" style="max-width: 75%; word-wrap: break-word;">
+            ${contenido}
+          </div>
+        `;
+
+      chat.appendChild(burbuja);
+    }
+
+    chat.scrollTop = chat.scrollHeight;
+
+    // Cerrar modal
+    localStorage.setItem('historialIdActual', id);
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalHistoriales'));
+    modal.hide();
+
+  } catch (err) {
+    console.error('❌ Error al cargar historial por ID:', err);
+    alert('Error al cargar la conversación seleccionada');
+  }
+}
+
+async function eliminarHistorial(id) {
+  if (!confirm('¿Seguro que quieres eliminar esta conversación?')) return;
+
+  try {
+    const res = await fetch(`/auth/historiales/${id}`, { method: 'DELETE' });
+
+    const data = await res.json();
+    if (res.ok) {
+      await abrirModalHistoriales(true); // Recargar la lista
+    } else {
+      alert(data.error || 'No se pudo eliminar el historial');
+    }
+  } catch (err) {
+    console.error('❌ Error al eliminar historial:', err);
+    alert('Error al eliminar historial');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.innerText = text;
+  return div.innerHTML;
+}
+
+async function editarTituloHistorial(id, actualTitulo = '') {
+  const nuevoTitulo = prompt('Nuevo nombre para esta conversación:', actualTitulo);
+  if (nuevoTitulo === null) return; // Cancelado
+
+  try {
+    const res = await fetch(`/auth/historiales/${id}/titulo`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titulo: nuevoTitulo })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      await abrirModalHistoriales(true); // Recargar lista sin reabrir el modal
+    } else {
+      alert(data.error || 'No se pudo actualizar el título');
+    }
+  } catch (err) {
+    console.error('❌ Error al editar título:', err);
+    alert('Error al actualizar el título');
+  }
+}
+
+document.addEventListener('click', function (e) {
+  if (e.target.classList.contains('editar-titulo')) {
+    const id = e.target.dataset.id;
+    const titulo = e.target.dataset.titulo || '';
+    editarTituloHistorial(id, titulo);
+  }
+});
