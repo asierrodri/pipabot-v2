@@ -282,8 +282,6 @@ async function cerrarSesion() {
 
   // 🔄 Eliminar historial y preferencias locales
   localStorage.removeItem('historial');
-  localStorage.removeItem('modo');           // ⬅️ reset modo claro/oscuro
-  localStorage.removeItem('vozActivada');    // ⬅️ reset voz
   localStorage.removeItem('historialIdActual');
 
   // 🔐 Cerrar sesión en el backend
