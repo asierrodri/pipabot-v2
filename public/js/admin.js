@@ -81,6 +81,9 @@ document.getElementById('formCrearUsuario').addEventListener('submit', async fun
       document.getElementById('mensajeUsuario').textContent = data.message;
       document.getElementById('formCrearUsuario').reset();
       cargarUsuarios();
+      // Cerrar modal si se creó correctamente
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalCrearUsuario'));
+      modal.hide();
     } else {
       document.getElementById('mensajeUsuario').textContent = '';
       alert(data.error === 'Ese usuario ya existe' ? 'El nombre de usuario ya está en uso.' : (data.error || 'Error al crear usuario'));
