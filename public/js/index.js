@@ -413,47 +413,52 @@ async function abrirModalHistoriales(noAbrirModal = false) {
 
     lista.innerHTML = ''; // limpiar antes de rellenar
 
-    // Mostrar mensaje si no hay historiales
     if (!Array.isArray(historiales) || historiales.length === 0) {
       const li = document.createElement('li');
       li.className = 'list-group-item text-muted text-center';
       li.textContent = 'No hay historiales guardados';
       lista.appendChild(li);
     } else {
-      // Mostrar lista de historiales
       historiales.forEach(hist => {
         const fecha = new Date(hist.fecha).toLocaleString();
-        const li = document.createElement('li');
-        li.className = 'list-group-item';
-
         const titulo = hist.titulo || `Conversación del ${fecha}`;
 
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.style.cursor = 'pointer'; // ✅ para que todo el recuadro parezca clicable
+
+        // ✅ Click en toda la tarjeta excepto en el dropdown
+        li.addEventListener('click', e => {
+          if (!e.target.closest('.dropdown')) {
+            cargarHistorialPorId(hist.id);
+          }
+        });
+
         const contenedor = document.createElement('div');
-        contenedor.className = 'd-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2';
+        contenedor.className = 'd-flex justify-content-between align-items-center';
 
         const span = document.createElement('span');
-        span.textContent = titulo;
-        span.style.cursor = 'pointer';
-        span.onclick = () => cargarHistorialPorId(hist.id);
+        span.innerHTML = `
+        <strong>${escapeHtml(titulo)}</strong><br>
+        <small class="text-muted">${fecha}</small>
+        `;
 
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn btn-sm btn-outline-secondary editar-titulo';
-        btnEditar.textContent = 'Editar';
-        btnEditar.dataset.id = hist.id;
-        btnEditar.dataset.titulo = hist.titulo || '';
+        // Menú de 3 puntos
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown';
 
-        const btnEliminar = document.createElement('button');
-        btnEliminar.className = 'btn btn-sm btn-outline-danger';
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.onclick = () => eliminarHistorial(hist.id);
-
-        const btnGroup = document.createElement('div');
-        btnGroup.className = 'd-flex gap-2';
-        btnGroup.appendChild(btnEditar);
-        btnGroup.appendChild(btnEliminar);
+        dropdown.innerHTML = `
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opciones">
+            <img src="img/dots.svg" width="18" height="18" alt="Menú">
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item editar-titulo" data-id="${hist.id}" data-titulo="${escapeHtml(hist.titulo || '')}">Editar</a></li>
+            <li><a class="dropdown-item text-danger" onclick="eliminarHistorial(${hist.id})">Eliminar</a></li>
+          </ul>
+        `;
 
         contenedor.appendChild(span);
-        contenedor.appendChild(btnGroup);
+        contenedor.appendChild(dropdown);
         li.appendChild(contenedor);
         lista.appendChild(li);
       });
@@ -471,6 +476,8 @@ async function abrirModalHistoriales(noAbrirModal = false) {
 }
 
 async function cargarHistorialPorId(id) {
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+
   const idActual = localStorage.getItem('historialIdActual');
 
   // 🟡 Siempre guardar primero la conversación actual

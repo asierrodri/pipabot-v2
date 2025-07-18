@@ -61,17 +61,23 @@ function verHistorialSeccion(seccion) {
         item.className = 'list-group-item';
 
         item.innerHTML = `
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <strong>Versión ${p.version}</strong> – ${new Date(p.fecha).toLocaleString()}
-              ${p.es_actual ? '<span class="badge bg-success ms-2">Actual</span>' : ''}
-              <pre class="mt-2 small bg-light p-2 border">${p.contenido.slice(0, 300)}${p.contenido.length > 300 ? '...' : ''}</pre>
+          <div class="d-flex flex-column gap-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong>Versión ${p.version}</strong>
+                <span class="text-muted small ms-2">${new Date(p.fecha).toLocaleString()}</span>
+                ${p.es_actual ? '<span class="badge bg-success ms-2">Actual</span>' : ''}
+              </div>
+              ${p.es_actual ? '' : `<button class="btn btn-sm btn-outline-primary" onclick="restaurarVersionPrompt(${p.id})">Restaurar</button>`}
             </div>
-            <div>
-              <button class="btn btn-sm btn-outline-primary" onclick="restaurarVersionPrompt(${p.id})">Restaurar</button>
-            </div>
+
+            <details class="bg-light border rounded p-2 small">
+              <summary style="cursor:pointer; font-weight: 500;">Ver contenido</summary>
+              <pre class="mt-2">${p.contenido}</pre>
+            </details>
           </div>
         `;
+
         lista.appendChild(item);
       });
 
@@ -91,6 +97,16 @@ async function restaurarVersionPrompt(id) {
   } else {
     alert(data.error || 'Error al restaurar');
   }
+}
+
+function cerrarSesion() {
+  localStorage.removeItem('historial');
+  localStorage.removeItem('username');
+  localStorage.removeItem('role');
+
+  fetch('/auth/logout', { method: 'POST' }).then(() => {
+    window.location.href = '/login.html';
+  });
 }
 
 // Cargar automáticamente al iniciar admin
