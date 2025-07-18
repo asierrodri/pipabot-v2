@@ -2,6 +2,7 @@ const axios = require('axios');
 const { GEMINI_API_URL } = require('../config/geminiConfig');
 const db = require('../config/db');
 
+// Obtener prompt desde la base de datos por secciones
 const getPromptFromSections = (username) => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -30,6 +31,8 @@ ${secciones.espacio}
 ${secciones.material}
 
 ${secciones.normas}
+
+Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
 
         resolve(prompt);
@@ -38,18 +41,22 @@ ${secciones.normas}
   });
 };
 
+// Función principal para enviar conversación a Gemini
 const askGemini = async (historial, username) => {
   const prompt = await getPromptFromSections(username);
+
+  // Limitar historial a los últimos 10 mensajes si es muy largo
+  const historialReciente = historial.slice(-10);
 
   const contents = [
     {
       role: 'model',
       parts: [{ text: prompt }]
     },
-    {
-      role: 'user',
-      parts: [{ text: historial.at(-1)?.text || 'Hola' }]
-    }
+    ...historialReciente.map(m => ({
+      role: m.role,
+      parts: [{ text: m.text }]
+    }))
   ];
 
   const response = await axios.post(GEMINI_API_URL, { contents });

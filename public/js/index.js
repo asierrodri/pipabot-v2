@@ -155,7 +155,7 @@ async function preguntar() {
   const mensaje = mensajeInput.value.trim();
   const chat = document.getElementById('chat');
   const archivoInput = document.getElementById('archivo');
-  const archivo = archivoInput.files[0];
+  const archivo = archivoSeleccionado;
 
   if (!mensaje && !archivo) return;
 
@@ -181,6 +181,9 @@ async function preguntar() {
   chat.appendChild(burbujaUsuario);
 
   mensajeInput.value = '';
+  archivoInput.value = ''; // limpia el input real
+  archivoSeleccionado = null; // limpia variable de referencia
+  document.getElementById('archivoNombre').textContent = ''; // limpia el texto visible
 
   // Mostrar burbuja "..." mientras responde
   const burbujaBot = document.createElement('div');
@@ -231,11 +234,6 @@ async function preguntar() {
   } catch (err) {
     burbujaBot.querySelector('div').textContent = 'Error al conectar con el servidor';
   }
-
-  // 🧹 Limpiar inputs después de enviar
-  document.getElementById('archivoNombre').textContent = '';
-  archivoInput.value = '';
-  archivoSeleccionado = null;
 
   chat.scrollTop = chat.scrollHeight;
 }
@@ -328,13 +326,15 @@ document.getElementById('btnUpload').addEventListener('click', () => {
 });
 
 document.getElementById('archivo').addEventListener('change', (e) => {
-  const archivo = e.target.files[0];
-  archivoSeleccionado = archivo;
+  const nuevoArchivo = e.target.files[0];
 
-  const archivoNombre = document.getElementById('archivoNombre');
-  archivoNombre.textContent = archivo
-    ? `Archivo seleccionado: ${archivo.name}`
-    : '';
+  if (nuevoArchivo) {
+    archivoSeleccionado = nuevoArchivo;
+    document.getElementById('archivoNombre').textContent = `Archivo seleccionado: ${nuevoArchivo.name}`;
+  } else {
+    // ❌ NO se borra archivoSeleccionado si no se ha elegido nada nuevo
+    document.getElementById('archivo').value = ''; // ⚠️ para evitar errores con el mismo archivo
+  }
 });
 
 //hablar
@@ -471,6 +471,11 @@ async function abrirModalHistoriales(noAbrirModal = false) {
 }
 
 async function cargarHistorialPorId(id) {
+  const idActual = localStorage.getItem('historialIdActual');
+
+  // 🟡 Siempre guardar primero la conversación actual
+  await guardarHistorial();
+
   try {
     const res = await fetch(`/auth/historiales/${id}`);
     const data = await res.json();
@@ -480,11 +485,13 @@ async function cargarHistorialPorId(id) {
       return;
     }
 
-    // Limpiar el chat y localStorage
+    // 🔄 Cargar nuevo historial en memoria y en localStorage
     historial = data;
     localStorage.setItem('historial', JSON.stringify(historial));
     localStorage.setItem('historialOriginal', JSON.stringify(historial));
+    localStorage.setItem('historialIdActual', id); // ✅ Actualizar ID incluso si es el mismo
 
+    // 🧹 Vaciar visualmente el chat y mostrar nuevo
     const chat = document.getElementById('chat');
     chat.innerHTML = '';
 
@@ -522,10 +529,9 @@ async function cargarHistorialPorId(id) {
 
     chat.scrollTop = chat.scrollHeight;
 
-    // Cerrar modal
-    localStorage.setItem('historialIdActual', id);
+    // 🧩 Cerrar modal si estaba abierto
     const modal = bootstrap.Modal.getInstance(document.getElementById('modalHistoriales'));
-    modal.hide();
+    if (modal) modal.hide();
 
   } catch (err) {
     console.error('❌ Error al cargar historial por ID:', err);

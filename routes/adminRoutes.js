@@ -138,14 +138,18 @@ router.post('/prompt/secciones', (req, res) => {
   );
 });
 
-//Restaurar una versión
+// Restaurar una versión
 router.put('/prompt/secciones/:id/restaurar', (req, res) => {
   const id = req.params.id;
 
   db.query('SELECT * FROM prompt_secciones WHERE id = ?', [id], (err, results) => {
     if (err || results.length === 0) return res.status(404).json({ error: 'Versión no encontrada' });
 
-    const { seccion, contenido } = results[0];
+    const { seccion, contenido, es_actual } = results[0];
+
+    if (es_actual) {
+      return res.json({ message: 'Ya es la versión actual' }); // ✅ No duplicar si ya lo es
+    }
 
     db.query('SELECT MAX(version) as maxVersion FROM prompt_secciones WHERE seccion = ?', [seccion], (err, resVer) => {
       if (err) return res.status(500).json({ error: 'Error al obtener versión' });
@@ -157,7 +161,7 @@ router.put('/prompt/secciones/:id/restaurar', (req, res) => {
           'INSERT INTO prompt_secciones (seccion, contenido, version, es_actual) VALUES (?, ?, ?, TRUE)',
           [seccion, contenido, nuevaVersion],
           (err) => {
-            if (err) return res.status(500).json({ error: 'Error al restaurar' });
+            if (err) return res.status(500).json({ error: 'Error al restaurar versión' });
             res.json({ message: 'Versión restaurada como actual' });
           }
         );
