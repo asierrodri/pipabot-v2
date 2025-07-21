@@ -79,6 +79,22 @@
       padding-bottom: 2rem;
       /* espacio para dropdown expandido */
     }
+
+    @media (min-width: 768px) {
+      .fondo-chat {
+        margin-left: 220px;
+        max-width: calc(100% - 220px);
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .fondo-chat {
+        margin-top: 3rem;
+        margin-left: calc(220px + 5rem);
+        margin-right: 3rem;
+        max-width: calc(75%);
+      }
+    }
   </style>
 
 </head>
@@ -86,14 +102,29 @@
 <body
   style="background-image: url('img/backgroundChat.jpg'); background-size: cover; background-attachment: fixed; background-repeat: no-repeat;">
 
-  <div class="container mt-5 p-4 rounded shadow animate__animated animate__fadeIn d-flex flex-column fondo-chat">
+  <div class="fondo-chat p-4 rounded shadow animate__animated animate__fadeIn d-flex flex-column">
+
+    <aside class="d-none d-md-block bg-white border-end p-3 position-fixed"
+      style="width: 220px; height: 100vh; top: 0; left: 0; z-index: 1030;">
+      <h5 class="text-center mb-4">PipaBot</h5>
+      <ul class="nav flex-column gap-1">
+        <li><button class="dropdown-item" onclick="abrirModalHistoriales()">Ver historiales</button></li>
+        <li><button class="dropdown-item" id="btnAlternarModo">Modo oscuro</button></li>
+        <li><button class="dropdown-item" id="btnAlternarVoz">Desactivar voz</button></li>
+        <li><button class="dropdown-item" id="btnNuevaConversacion">Nueva conversación</button></li>
+        <li><button class="dropdown-item" onclick="irAlPanelAdmin()" id="enlaceAdmin" style="display: none;">Panel
+            admin</button></li>
+        <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
+      </ul>
+    </aside>
+
 
     <!-- Saludo arriba a la izquierda y menu hamburguesa a la derecha -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <p class="mb-0 text-muted small">Hola, <span id="nombreUsuario"></span></p>
 
       <!-- Menú hamburguesa moderno -->
-      <div class="dropdown">
+      <div class="dropdown d-md-none">
         <button class="btn btn-outline-secondary btn-sm" type="button" id="menuBtn" data-bs-toggle="dropdown"
           aria-expanded="false" aria-label="Menú">
           <img src="img/menu.svg" alt="Menú" width="20" height="20">
