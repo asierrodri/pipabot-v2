@@ -162,25 +162,42 @@ async function verConversacionesUsuario(username) {
       lista.innerHTML = '';
       historiales.forEach(hist => {
         const fecha = new Date(hist.fecha).toLocaleString();
+        const titulo = hist.titulo || `Conversación del ${fecha}`;
+
         const li = document.createElement('li');
         li.className = 'list-group-item';
-        li.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
-        <span style="cursor: pointer;" onclick="cargarHistorialAdmin(${hist.id})">
-          ${hist.titulo ? escapeHtml(hist.titulo) : `Conversación del ${fecha}`}
-        </span>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-secondary editar-titulo-admin" 
-            data-id="${hist.id}" 
-            data-titulo="${hist.titulo ? escapeHtml(hist.titulo) : ''}">
-            Editar
+        li.style.cursor = 'pointer';
+
+        li.addEventListener('click', e => {
+          if (!e.target.closest('.dropdown')) {
+            cargarHistorialAdmin(hist.id);
+          }
+        });
+
+        const contenedor = document.createElement('div');
+        contenedor.className = 'd-flex justify-content-between align-items-center';
+
+        const span = document.createElement('span');
+        span.innerHTML = `
+          <strong>${escapeHtml(titulo)}</strong><br>
+          <small class="text-muted">${fecha}</small>
+        `;
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown';
+        dropdown.innerHTML = `
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="img/dots.svg" width="18" height="18" alt="Menú">
           </button>
-          <button class="btn btn-sm btn-outline-danger" onclick="eliminarHistorialAdmin(${hist.id}, '${username}')">
-            Eliminar
-          </button>
-        </div>
-      </div>
-    `;
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item editar-titulo-admin" data-id="${hist.id}" data-titulo="${escapeHtml(hist.titulo || '')}">Editar</a></li>
+            <li><a class="dropdown-item text-danger" onclick="eliminarHistorialAdmin(${hist.id}, '${username}')">Eliminar</a></li>
+          </ul>
+        `;
+
+        contenedor.appendChild(span);
+        contenedor.appendChild(dropdown);
+        li.appendChild(contenedor);
         lista.appendChild(li);
       });
     }
