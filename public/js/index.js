@@ -88,7 +88,68 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('role') === 'admin') {
     document.getElementById('enlaceAdminMenu').style.display = 'block';
   }
+
+  if (window.innerWidth >= 768) {
+    cargarHistorialesEnPanelLateral();
+  }
+
 });
+
+async function cargarHistorialesEnPanelLateral() {
+  const lista = document.getElementById('listaHistorialesLateral');
+  if (!lista) return;
+
+  lista.innerHTML = '<li class="list-group-item text-muted">Cargando...</li>';
+
+  try {
+    const res = await fetch('/auth/historiales');
+    const historiales = await res.json();
+
+    lista.innerHTML = '';
+
+    if (!Array.isArray(historiales) || historiales.length === 0) {
+      lista.innerHTML = '<li class="list-group-item text-muted">Sin conversaciones</li>';
+    } else {
+      historiales.forEach(hist => {
+        const fecha = new Date(hist.fecha).toLocaleDateString();
+        const titulo = hist.titulo || `Conversación del ${fecha}`;
+
+        const li = document.createElement('li');
+        li.className = 'list-group-item py-1 px-2';
+        li.style.cursor = 'pointer';
+        li.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="me-2 text-truncate" title="${titulo}">${titulo}</span>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-light border dropdown-toggle p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="img/dots.svg" alt="Menú" width="16" height="16">
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item editar-lateral" data-id="${hist.id}" data-titulo="${escapeHtml(titulo)}">Editar</a></li>
+                <li><a class="dropdown-item text-danger" onclick="eliminarHistorialLateral(${hist.id})">Eliminar</a></li>
+              </ul>
+            </div>
+          </div>
+        `;
+
+        li.addEventListener('click', e => {
+          if (!e.target.closest('.dropdown')) {
+            cargarHistorialPorId(hist.id);
+          }
+        });
+
+        // Evitar que el clic en el botón de menú propague y dispare el evento del <li>
+        li.querySelector('.dropdown-toggle')?.addEventListener('click', e => {
+          e.stopPropagation();
+        });
+
+        lista.appendChild(li);
+      });
+    }
+  } catch (err) {
+    lista.innerHTML = '<li class="list-group-item text-danger">Error al cargar</li>';
+  }
+}
 
 // =========================
 // 🗣️ Hablar si voz activada
@@ -267,6 +328,10 @@ async function guardarHistorial() {
     localStorage.setItem('historialOriginal', JSON.stringify(historial))
   } catch (err) {
     console.error('❌ Error al guardar historial:', err);
+  }
+
+  if (window.innerWidth >= 768) {
+    cargarHistorialesEnPanelLateral();
   }
 }
 
@@ -498,6 +563,17 @@ async function cargarHistorialPorId(id) {
     localStorage.setItem('historialOriginal', JSON.stringify(historial));
     localStorage.setItem('historialIdActual', id); // ✅ Actualizar ID incluso si es el mismo
 
+    localStorage.setItem('historialIdActual', id);
+
+    document.querySelectorAll('#listaHistorialesLateral .list-group-item').forEach(li => {
+      if (li.innerHTML.includes(`data-id="${id}"`)) {
+        li.classList.add('activa');
+      } else {
+        li.classList.remove('activa');
+      }
+    });
+
+
     // 🧹 Vaciar visualmente el chat y mostrar nuevo
     const chat = document.getElementById('chat');
     chat.innerHTML = '';
@@ -572,7 +648,7 @@ function escapeHtml(text) {
 
 async function editarTituloHistorial(id, actualTitulo = '') {
   const nuevoTitulo = prompt('Nuevo nombre para esta conversación:', actualTitulo);
-  if (nuevoTitulo === null) return; // Cancelado
+  if (nuevoTitulo === null) return;
 
   try {
     const res = await fetch(`/auth/historiales/${id}/titulo`, {
@@ -583,7 +659,11 @@ async function editarTituloHistorial(id, actualTitulo = '') {
 
     const data = await res.json();
     if (res.ok) {
-      await abrirModalHistoriales(true); // Recargar lista sin reabrir el modal
+      if (window.innerWidth >= 768) {
+        cargarHistorialesEnPanelLateral(); // ✅ recarga lateral
+      } else {
+        await abrirModalHistoriales(true); // ✅ recarga modal
+      }
     } else {
       alert(data.error || 'No se pudo actualizar el título');
     }
@@ -593,10 +673,43 @@ async function editarTituloHistorial(id, actualTitulo = '') {
   }
 }
 
+async function eliminarHistorialLateral(id) {
+  if (!confirm('¿Seguro que quieres eliminar esta conversación?')) return;
+
+  try {
+    const res = await fetch(`/auth/historiales/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (res.ok) {
+      // 🧹 Si la conversación eliminada es la activa, limpiar todo
+      const idActual = localStorage.getItem('historialIdActual');
+      if (idActual === String(id)) {
+        localStorage.removeItem('historial');
+        localStorage.removeItem('historialIdActual');
+        localStorage.removeItem('historialOriginal');
+        historial = [];
+        document.getElementById('chat').innerHTML = '';
+      }
+
+      // Recargar la lista lateral
+      if (window.innerWidth >= 768) {
+        cargarHistorialesEnPanelLateral();
+      }
+    } else {
+      alert(data.error || 'No se pudo eliminar el historial');
+    }
+  } catch (err) {
+    console.error('❌ Error al eliminar historial:', err);
+    alert('Error al eliminar historial');
+  }
+}
+
+
 document.addEventListener('click', function (e) {
-  if (e.target.classList.contains('editar-titulo')) {
+  if (e.target.classList.contains('editar-titulo') || e.target.classList.contains('editar-lateral')) {
     const id = e.target.dataset.id;
     const titulo = e.target.dataset.titulo || '';
     editarTituloHistorial(id, titulo);
+    e.stopPropagation();
   }
 });
