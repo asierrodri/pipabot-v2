@@ -10,13 +10,14 @@
     <style>
         .fondo-chat-admin {
             background-color: rgba(217, 230, 230, 0.411);
-            max-width: 800px;
+            width: 100%;
             height: 60vh;
         }
 
-        @media (max-width: 1024px) {
+        @media (min-width: 1024px) {
             .fondo-chat-admin {
-                max-width: 100%;
+                width: 70%;
+                margin: 0 auto;
                 height: 70vh;
             }
         }
@@ -31,19 +32,37 @@
         .list-group-item:hover {
             background-color: #f8f9fa;
         }
+
+        @media (min-width: 768px) {
+            .container {
+                margin-left: 220px;
+                max-width: 70%;
+            }
+        }
     </style>
 
 </head>
 
 <body class="bg-light">
 
+    <!-- Panel lateral para escritorio -->
+    <aside class="d-none d-md-block bg-white border-end p-3 position-fixed"
+        style="width: 220px; height: 100vh; top: 0; left: 0; z-index: 1030;">
+        <h5 class="text-center mb-4">PipaBot</h5>
+        <ul class="nav flex-column gap-1">
+            <li><a class="dropdown-item" href="/admin/prompt">Gestionar prompt</a></li>
+            <li><a class="dropdown-item" href="/index.html">Volver al chat</a></li>
+            <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
+        </ul>
+    </aside>
+
     <div class="container mt-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-0">Panel de Administración</h2>
 
             <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm" type="button" id="menuAdmin" data-bs-toggle="dropdown"
-                    aria-expanded="false" aria-label="Menú de opciones">
+                <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" id="menuAdmin"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menú de opciones">
                     <img src="/img/menu.svg" width="20" height="20" alt="Menú">
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuAdmin">
@@ -80,7 +99,7 @@
                 <h4 class="mb-0">Visualizador de conversación</h4>
             </div>
             <div id="chatVisualizador"
-                class="container p-4 rounded shadow d-flex flex-column gap-2 fondo-chat-admin overflow-auto"
+                class="mb-4 p-4 rounded shadow d-flex flex-column gap-2 fondo-chat-admin overflow-auto"
                 style="min-height: 300px;">
             </div>
         </div>
