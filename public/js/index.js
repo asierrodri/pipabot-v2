@@ -119,7 +119,7 @@ async function cargarHistorialesEnPanelLateral() {
         li.style.cursor = 'pointer';
         li.innerHTML = `
           <div class="d-flex justify-content-between align-items-center">
-            <span class="me-2 text-truncate" title="${titulo}">${titulo}</span>
+            <span class="me-2 multi-line-ellipsis" title="${titulo}">${titulo}</span>
             <div class="dropdown">
               <button class="btn btn-sm btn-light border dropdown-toggle p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <img src="img/dots.svg" alt="Menú" width="16" height="16">
@@ -322,9 +322,14 @@ async function guardarHistorial() {
     const data = await res.json();
 
     if (res.ok && data.id) {
-      // Si es una conversación nueva, guarda su ID para futuras actualizaciones
       localStorage.setItem('historialIdActual', data.id);
+
+      if (data.titulo) {
+        // Guardar el título localmente si se genera automáticamente
+        localStorage.setItem('tituloHistorialActual', data.titulo);
+      }
     }
+
     localStorage.setItem('historialOriginal', JSON.stringify(historial))
   } catch (err) {
     console.error('❌ Error al guardar historial:', err);

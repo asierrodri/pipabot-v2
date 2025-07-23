@@ -63,4 +63,23 @@ const askGemini = async (historial, username) => {
   return response.data.candidates[0].content.parts[0].text;
 };
 
-module.exports = { askGemini };
+const generarTituloConGemini = async (historial) => {
+  const intro = `Genera un título breve y descriptivo para esta conversación. No uses comillas ni puntuación innecesaria. Máximo 100 caracteres.`;
+
+  const resumen = historial.slice(0, 2).map(m =>
+    `${m.role === 'user' ? 'Usuario' : 'Bot'}: ${m.text}`
+  ).join('\n');
+
+  const contents = [
+    {
+      role: 'user',
+      parts: [{ text: `${intro}\n\n${resumen}` }]
+    }
+  ];
+
+  const response = await axios.post(GEMINI_API_URL, { contents });
+  return response.data.candidates[0].content.parts[0].text.trim().slice(0, 100);
+};
+
+module.exports = { askGemini, generarTituloConGemini };
+

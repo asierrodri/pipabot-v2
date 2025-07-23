@@ -21,7 +21,9 @@ router.get('/usuario', (req, res) => {
 
 const db = require('../config/db'); // 👈 asegúrate de tener esta línea arriba
 
-router.post('/guardar-historial', (req, res) => {
+const { generarTituloConGemini } = require('../services/geminiService');
+
+router.post('/guardar-historial', async (req, res) => {
   const { historial } = req.body;
   const username = req.session?.user?.username;
 
@@ -29,19 +31,26 @@ router.post('/guardar-historial', (req, res) => {
     return res.status(400).json({ error: 'Faltan datos' });
   }
 
-  db.query(
-    'INSERT INTO historiales (username, datos) VALUES (?, ?)',
-    [username, JSON.stringify(historial)],
-    (err, result) => {
-      if (err) {
-        console.error('❌ Error al guardar historial:', err);
-        return res.status(500).json({ error: 'Error al guardar historial' });
-      }
-      res.json({ message: 'Historial guardado', id: result.insertId });
-    }
+  try {
+    const titulo = await generarTituloConGemini(historial);
 
-  );
+    db.query(
+      'INSERT INTO historiales (username, datos, titulo) VALUES (?, ?, ?)',
+      [username, JSON.stringify(historial), titulo],
+      (err, result) => {
+        if (err) {
+          console.error('❌ Error al guardar historial:', err);
+          return res.status(500).json({ error: 'Error al guardar historial' });
+        }
+        res.json({ message: 'Historial guardado', id: result.insertId, titulo });
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error al generar título con Gemini:', error);
+    res.status(500).json({ error: 'No se pudo generar título' });
+  }
 });
+
 
 router.get('/historiales', (req, res) => {
   const username = req.session?.user?.username;
