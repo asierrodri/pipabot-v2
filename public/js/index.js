@@ -85,6 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnAlternarVoz')?.addEventListener('click', alternarVoz);
 
+  document.getElementById('btnAlternarModoMovil')?.addEventListener('click', () => {
+    const modoActual = localStorage.getItem('modo') === 'oscuro' ? 'claro' : 'oscuro';
+    alternarModo(modoActual);
+  });
+
+  document.getElementById('btnAlternarVozMovil')?.addEventListener('click', alternarVoz);
+
+
   if (localStorage.getItem('role') === 'admin') {
     document.getElementById('enlaceAdminMenu').style.display = 'block';
   }
@@ -188,10 +196,12 @@ function actualizarBotonVoz() {
   const activada = localStorage.getItem('vozActivada') === 'true';
 
   const btnMenu = document.getElementById('btnAlternarVoz');
-  if (btnMenu) {
-    btnMenu.textContent = activada ? 'Desactivar voz' : 'Activar voz';
-  }
+  const btnMovil = document.getElementById('btnAlternarVozMovil');
+
+  if (btnMenu) btnMenu.textContent = activada ? 'Desactivar voz' : 'Activar voz';
+  if (btnMovil) btnMovil.textContent = activada ? 'Desactivar voz' : 'Activar voz';
 }
+
 
 // =========================
 // 🔘 Alternar voz y guardar preferencia
@@ -379,11 +389,14 @@ function alternarModo(modo) {
     body.style.backgroundImage = "url('img/backgroundChatDark.png')";
     localStorage.setItem('modo', 'oscuro');
     document.getElementById('btnAlternarModo').textContent = 'Modo claro';
+    document.getElementById('btnAlternarModoMovil').textContent = 'Modo claro';
   } else {
     body.style.backgroundImage = "url('img/backgroundChat.jpg')";
     localStorage.setItem('modo', 'claro');
     document.getElementById('btnAlternarModo').textContent = 'Modo oscuro';
+    document.getElementById('btnAlternarModoMovil').textContent = 'Modo oscuro';
   }
+
 }
 
 // =========================
