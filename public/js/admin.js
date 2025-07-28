@@ -15,7 +15,6 @@ async function cargarUsuarios() {
     usuarios.forEach(user => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-      <td>${user.id}</td>
       <td>${user.username}</td>
       <td>${user.role}</td>
       <td>
@@ -325,4 +324,136 @@ document.addEventListener('click', function (e) {
         });
     }
   }
+});
+
+function mostrarInventario() {
+  document.getElementById('seccionInventario').style.display = 'block';
+  document.getElementById('tablaUsuarios').closest('table').style.display = 'none';
+  document.getElementById('seccionVisualizador').style.display = 'none'; // o 'block'
+  cargarInventario();
+
+  // Cierra modal de historial si está abierto
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalHistorialesAdmin'));
+  if (modal) modal.hide();
+}
+
+function mostrarUsuarios() {
+  document.getElementById('seccionInventario').style.display = 'none';
+  document.getElementById('tablaUsuarios').closest('table').style.display = 'table';
+  document.getElementById('seccionVisualizador').style.display = 'block';
+}
+
+async function cargarInventario() {
+  try {
+    const res = await fetch('/admin/inventario');
+    const inventario = await res.json();
+    const tbody = document.getElementById('tablaInventario');
+    tbody.innerHTML = '';
+
+    inventario.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${item.nombre}</td>
+        <td>${item.categoria || '-'}</td>
+        <td>${item.cantidad}</td>
+        <td>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-light border dropdown-toggle p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="img/dots.svg" alt="Menú" width="16" height="16">
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item editar-inventario" href="#" data-item='${JSON.stringify(item).replace(/"/g, '&quot;')}'>Editar</a></li>
+              <li><a class="dropdown-item text-danger eliminar-inventario" href="#" data-id="${item.id}">Eliminar</a></li>
+            </ul>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Delegación de eventos
+    tbody.querySelectorAll('.editar-inventario').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const item = JSON.parse(btn.dataset.item.replace(/&quot;/g, '"'));
+        editarInventario(item);
+      });
+    });
+
+    tbody.querySelectorAll('.eliminar-inventario').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        eliminarInventario(btn.dataset.id);
+      });
+    });
+
+  } catch (err) {
+    alert('Error al cargar inventario');
+  }
+}
+
+function abrirModalInventario() {
+  document.getElementById('modalInventarioTitulo').textContent = 'Añadir producto';
+  document.getElementById('formInventario').reset();
+  document.getElementById('inventarioId').value = '';
+  new bootstrap.Modal(document.getElementById('modalInventario')).show();
+}
+
+function editarInventario(item) {
+  document.getElementById('modalInventarioTitulo').textContent = 'Editar producto';
+  document.getElementById('inventarioId').value = item.id;
+  document.getElementById('inventarioNombre').value = item.nombre;
+  document.getElementById('inventarioCategoria').value = item.categoria || '';
+  document.getElementById('inventarioCantidad').value = item.cantidad;
+  document.getElementById('inventarioDescripcion').value = item.descripcion || '';
+  new bootstrap.Modal(document.getElementById('modalInventario')).show();
+}
+
+document.getElementById('formInventario').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const id = document.getElementById('inventarioId').value;
+  const nombre = document.getElementById('inventarioNombre').value.trim();
+  const categoria = document.getElementById('inventarioCategoria').value.trim();
+  const cantidad = parseInt(document.getElementById('inventarioCantidad').value);
+  const descripcion = document.getElementById('inventarioDescripcion').value.trim();
+
+  if (!nombre || isNaN(cantidad)) return alert('Nombre y cantidad son obligatorios');
+
+  const metodo = id ? 'PUT' : 'POST';
+  const url = id ? `/admin/inventario/${id}` : '/admin/inventario';
+
+  try {
+    const res = await fetch(url, {
+      method: metodo,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, categoria, cantidad, descripcion })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('modalInventario')).hide();
+      cargarInventario();
+    } else {
+      alert(data.error || 'Error al guardar');
+    }
+  } catch (err) {
+    alert('Error al conectar con el servidor');
+  }
+});
+
+async function eliminarInventario(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+
+  try {
+    const res = await fetch(`/admin/inventario/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) cargarInventario();
+    else alert(data.error || 'No se pudo eliminar');
+  } catch (err) {
+    alert('Error al eliminar');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  mostrarUsuarios();
 });

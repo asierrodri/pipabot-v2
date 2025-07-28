@@ -39,6 +39,10 @@
                 max-width: 70%;
             }
         }
+
+        .dropdown-toggle::after {
+            display: none !important;
+        }
     </style>
 
 </head>
@@ -53,6 +57,8 @@
             <li><a class="dropdown-item" href="/admin/prompt">Gestionar prompt</a></li>
             <li><a class="dropdown-item" href="/index.html">Volver al chat</a></li>
             <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
+            <li><a class="dropdown-item" href="#" onclick="mostrarInventario()">Gestionar inventario</a></li>
+            <li><a class="dropdown-item" href="#" onclick="mostrarUsuarios()">Gestionar usuarios</a></li>
         </ul>
     </aside>
 
@@ -73,6 +79,9 @@
                     </li>
                     <li><a class="dropdown-item" href="/admin/prompt">Gestionar prompt</a></li>
                     <li><a class="dropdown-item" href="/index.html">Volver al chat</a></li>
+                    <li><button class="dropdown-item" onclick="mostrarInventario()">Gestionar inventario</button></li>
+                    <li><button class="dropdown-item" onclick="mostrarUsuarios()">Gestionar usuarios</button></li>
+
                     <li><button class="dropdown-item text-danger" onclick="cerrarSesion()">Cerrar sesión</button></li>
                 </ul>
             </div>
@@ -81,7 +90,6 @@
         <table class="table table-bordered">
             <thead class="table-light">
                 <tr>
-                    <th>ID</th>
                     <th>Usuario</th>
                     <th>Rol</th>
                     <th>Acciones</th>
@@ -92,9 +100,28 @@
             </tbody>
         </table>
 
+        <div class="mt-5" id="seccionInventario" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Inventario</h4>
+                <button class="btn btn-sm btn-primary" onclick="abrirModalInventario()">Añadir producto</button>
+            </div>
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Cant</th>
+                        <th>Opc</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaInventario">
+                    <!-- productos se cargan por JS -->
+                </tbody>
+            </table>
+        </div>
 
         <!-- zona de visualización del historial -->
-        <div class="mt-5">
+        <div class="mt-5" id="seccionVisualizador">
             <div class="mb-4 d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">Visualizador de conversación</h4>
             </div>
@@ -188,6 +215,32 @@
                         </div>
                     </form>
                     <div id="mensajeUsuario" class="mt-3 text-success text-center"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear producto -->
+    <div class="modal fade" id="modalInventario" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalInventarioTitulo">Añadir producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formInventario">
+                        <input type="hidden" id="inventarioId">
+                        <div class="mb-2"><input type="text" class="form-control" id="inventarioNombre"
+                                placeholder="Nombre" required></div>
+                        <div class="mb-2"><input type="text" class="form-control" id="inventarioCategoria"
+                                placeholder="Categoría"></div>
+                        <div class="mb-2"><input type="number" class="form-control" id="inventarioCantidad"
+                                placeholder="Cantidad" required></div>
+                        <div class="mb-2"><textarea class="form-control" id="inventarioDescripcion"
+                                placeholder="Descripción"></textarea></div>
+                        <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                    </form>
                 </div>
             </div>
         </div>

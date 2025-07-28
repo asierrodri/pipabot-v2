@@ -170,4 +170,52 @@ router.put('/prompt/secciones/:id/restaurar', (req, res) => {
   });
 });
 
+// Obtener productos
+router.get('/inventario', (req, res) => {
+  db.query('SELECT * FROM inventario ORDER BY fecha_agregado DESC', (err, results) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener inventario' });
+    res.json(results);
+  });
+});
+
+// Crear producto
+router.post('/inventario', (req, res) => {
+  const { nombre, descripcion, cantidad, categoria } = req.body;
+  if (!nombre || cantidad == null) return res.status(400).json({ error: 'Faltan datos obligatorios' });
+
+  db.query(
+    'INSERT INTO inventario (nombre, descripcion, cantidad, categoria) VALUES (?, ?, ?, ?)',
+    [nombre, descripcion, cantidad, categoria],
+    err => {
+      if (err) return res.status(500).json({ error: 'Error al agregar producto' });
+      res.json({ message: 'Producto agregado' });
+    }
+  );
+});
+
+// Editar producto
+router.put('/inventario/:id', (req, res) => {
+  const id = req.params.id;
+  const { nombre, descripcion, cantidad, categoria } = req.body;
+
+  db.query(
+    'UPDATE inventario SET nombre = ?, descripcion = ?, cantidad = ?, categoria = ? WHERE id = ?',
+    [nombre, descripcion, cantidad, categoria, id],
+    err => {
+      if (err) return res.status(500).json({ error: 'Error al actualizar producto' });
+      res.json({ message: 'Producto actualizado' });
+    }
+  );
+});
+
+// Eliminar producto
+router.delete('/inventario/:id', (req, res) => {
+  const id = req.params.id;
+  db.query('DELETE FROM inventario WHERE id = ?', [id], err => {
+    if (err) return res.status(500).json({ error: 'Error al eliminar producto' });
+    res.json({ message: 'Producto eliminado' });
+  });
+});
+
+
 module.exports = router;
