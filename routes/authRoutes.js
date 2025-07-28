@@ -23,6 +23,45 @@ const db = require('../config/db'); // 👈 asegúrate de tener esta línea arri
 
 const { generarTituloConGemini } = require('../services/geminiService');
 
+const bcrypt = require('bcrypt');
+const axios = require('axios');
+
+router.post('/registro', async (req, res) => {
+  const { username, password, token } = req.body;
+  const role = 'user';
+
+  if (!username || !password || !token) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  try {
+    const verifyURL = `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`;
+    const { data } = await axios.post(verifyURL);
+
+    if (!data.success || data.score < 0.5) {
+      return res.status(403).json({ error: 'Falló la verificación de reCAPTCHA' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.query(
+      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+      [username, hashedPassword, role],
+      (err) => {
+        if (err) {
+          if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Ese usuario ya existe' });
+          }
+          return res.status(500).json({ error: 'Error en la base de datos' });
+        }
+        res.status(201).json({ message: 'Usuario registrado' });
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error en el registro:', error.message);
+    res.status(500).json({ error: 'Error en el servidor' });
+  }
+});
+
 router.post('/guardar-historial', async (req, res) => {
   const { historial } = req.body;
   const username = req.session?.user?.username;

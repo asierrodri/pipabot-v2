@@ -56,6 +56,8 @@ app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html
 app.use('/img', express.static(path.join(__dirname, 'public', 'img')));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
 app.use('/js/login.js', express.static(path.join(__dirname, 'public', 'js', 'login.js')));
+app.use('/registro.html', express.static(path.join(__dirname, 'public', 'registro.html')));
+app.use('/js/registro.js', express.static(path.join(__dirname, 'public', 'js', 'registro.js')));
 
 // Archivos protegidos (solo si hay sesión)
 app.use('/index.html', verificarSesion, express.static(path.join(__dirname, 'public', 'index.html')));
@@ -85,6 +87,10 @@ app.get('/admin', verificarSesion, (req, res) => {
 
 app.get('/admin/prompt', verificarSesion, verificarAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'prompt.html'));
+});
+
+app.get('/registro', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'registro.html'));
 });
 
 module.exports = app;
