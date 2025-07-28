@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   actualizarBotonVoz();
+  actualizarIconoAltavoz();
 
   // Mostrar historial con hora
   const chat = document.getElementById('chat');
@@ -202,6 +203,14 @@ function actualizarBotonVoz() {
   if (btnMovil) btnMovil.textContent = activada ? 'Desactivar voz' : 'Activar voz';
 }
 
+function actualizarIconoAltavoz() {
+  const activada = localStorage.getItem('vozActivada') === 'true';
+  const icono = document.getElementById('iconoAltavoz');
+  if (!icono) return;
+
+  icono.src = activada ? 'img/altavoz-on.svg' : 'img/altavoz-off.svg';
+  icono.alt = activada ? 'Voz activada' : 'Voz desactivada';
+}
 
 // =========================
 // 🔘 Alternar voz y guardar preferencia
@@ -211,6 +220,7 @@ function alternarVoz() {
   const nuevo = !actual;
   localStorage.setItem('vozActivada', nuevo.toString());
   actualizarBotonVoz();
+  actualizarIconoAltavoz();
 
   // Si se desactiva la voz, detener inmediatamente cualquier síntesis en curso
   if (!nuevo && 'speechSynthesis' in window) {
