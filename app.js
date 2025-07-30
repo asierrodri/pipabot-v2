@@ -66,6 +66,8 @@ app.use('/admin.html', verificarSesion, express.static(path.join(__dirname, 'pub
 app.use('/js/admin.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'admin.js')));
 app.use('/admin/prompt.html', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'prompt.html')));
 app.use('/js/prompt.js', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'js', 'prompt.js')));
+app.use('/control-mesa.html', verificarSesion, express.static(path.join(__dirname, 'public', 'controlMesa.html')));
+app.use('/js/controlMesa.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'controlMesa.js')));
 
 
 // Rutas HTML
