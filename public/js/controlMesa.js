@@ -31,8 +31,24 @@ function enviarOSC(ruta, valor) {
         body: JSON.stringify({ ruta, valor })
     })
         .then(res => res.json())
-        .then(data => console.log('✅ OSC enviado:', data))
-        .catch(err => console.error('❌ Error OSC:', err));
+        .then(data => {
+            console.log('✅ OSC enviado:', data);
+            agregarLog(`✅ Enviado a ${ruta} valor ${valor}`);
+        })
+        .catch(err => {
+            console.error('❌ Error OSC:', err);
+            agregarLog(`❌ Error al enviar a ${ruta}`);
+        });
+}
+
+function agregarLog(mensaje) {
+    const log = document.getElementById('logComandos');
+    const li = document.createElement('li');
+    li.className = 'list-group-item';
+    li.textContent = mensaje;
+
+    log.prepend(li);
+    if (log.children.length > 10) log.removeChild(log.lastChild);
 }
 
 function ajustarFader(canal, valor) {
