@@ -7,6 +7,7 @@ const path = require('path');
 const promptRoutes = require('./routes/promptRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const mesaRoutes = require('./routes/mesaRoutes');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/preguntar', (req, res, next) => {
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 app.use('/admin', verificarSesion, adminRoutes);
+app.use('/mesa', verificarSesion, mesaRoutes);
 
 // Archivos públicos sin login
 app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html')));
