@@ -8,20 +8,30 @@ function crearPanel() {
         const col = document.createElement('div');
         col.className = 'col-12 col-sm-6 col-md-4 col-lg-3 mb-4';
         col.innerHTML = `
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title text-center">Canal ${i}</h5>
-          <input type="range" min="0" max="1" step="0.01" value="0.5" class="form-range mb-3" 
-            onchange="ajustarFader('${canal}', this.value)">
-          <div class="d-grid gap-2">
-            <button class="btn btn-danger" onclick="mutear('${canal}')">Mute</button>
-            <button class="btn btn-success" onclick="desmutear('${canal}')">Unmute</button>
-          </div>
-        </div>
-      </div>
-    `;
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-center">Canal ${i}</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="range" min="0" max="1" step="0.01" value="0.5" class="form-range mb-1 flex-grow-1"
+                            onchange="ajustarFader('${canal}', this.value)" oninput="actualizarValor('${canal}', this.value)">
+                        <small id="valor-${canal}" style="min-width: 40px;">0.50</small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-danger" onclick="mutear('${canal}')">Mute</button>
+                        <button class="btn btn-success" onclick="desmutear('${canal}')">Unmute</button>
+                        <button class="btn btn-secondary" onclick="resetearCanal('${canal}')">Reset</button>
+                    </div>
+                </div>
+            </div>
+        `;
         contenedor.appendChild(col);
     }
+}
+
+function actualizarValor(canal, valor) {
+    const span = document.getElementById(`valor-${canal}`);
+    if (span) span.textContent = parseFloat(valor).toFixed(2);
 }
 
 function enviarOSC(ruta, valor) {
@@ -68,6 +78,36 @@ function cerrarSesion() {
         localStorage.clear();
         window.location.href = '/login.html';
     });
+}
+
+function resetearCanal(canal) {
+    const valorPorDefecto = 0.5;
+    ajustarFader(canal, valorPorDefecto);
+    desmutear(canal);
+    const slider = document.querySelector(`input[type="range"][onchange*="${canal}"]`);
+    if (slider) {
+        slider.value = valorPorDefecto;
+        actualizarValor(canal, valorPorDefecto);
+    }
+}
+
+function resetearTodos() {
+    for (let i = 1; i <= numCanales; i++) {
+        const canal = i.toString().padStart(2, '0');
+        resetearCanal(canal);
+    }
+}
+
+function mutearTodos() {
+    for (let i = 1; i <= numCanales; i++) {
+        mutear(i.toString().padStart(2, '0'));
+    }
+}
+
+function desmutearTodos() {
+    for (let i = 1; i <= numCanales; i++) {
+        desmutear(i.toString().padStart(2, '0'));
+    }
 }
 
 crearPanel();

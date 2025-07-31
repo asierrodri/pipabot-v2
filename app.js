@@ -51,7 +51,8 @@ app.use('/preguntar', (req, res, next) => {
 app.use('/preguntar', promptRoutes);
 app.use('/auth', authRoutes);
 app.use('/admin', verificarSesion, adminRoutes);
-app.use('/mesa', verificarSesion, mesaRoutes);
+//app.use('/mesa', verificarSesion, mesaRoutes);
+app.use('/mesa', mesaRoutes); // ← sin verificarSesion
 
 // Archivos públicos sin login
 app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html')));
@@ -68,9 +69,10 @@ app.use('/admin.html', verificarSesion, express.static(path.join(__dirname, 'pub
 app.use('/js/admin.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'admin.js')));
 app.use('/admin/prompt.html', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'prompt.html')));
 app.use('/js/prompt.js', verificarSesion, verificarAdmin, express.static(path.join(__dirname, 'public', 'js', 'prompt.js')));
-app.use('/control-mesa.html', verificarSesion, express.static(path.join(__dirname, 'public', 'controlMesa.html')));
-app.use('/js/controlMesa.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'controlMesa.js')));
-
+/* app.use('/control-mesa.html', verificarSesion, express.static(path.join(__dirname, 'public', 'controlMesa.html')));
+app.use('/js/controlMesa.js', verificarSesion, express.static(path.join(__dirname, 'public', 'js', 'controlMesa.js'))); */
+app.use('/control-mesa.html', express.static(path.join(__dirname, 'public', 'controlMesa.html')));
+app.use('/js/controlMesa.js', express.static(path.join(__dirname, 'public', 'js', 'controlMesa.js')));
 
 // Rutas HTML
 app.get('/login', (req, res) => {
