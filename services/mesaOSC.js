@@ -10,12 +10,23 @@ const udpPort = new osc.UDPPort({
 udpPort.open();
 
 function enviarOSC(ruta, valor) {
+  let tipo = typeof valor === 'number' ? 'f' : 's';
+  let val = valor;
+
+  // Para /-ssave o /-sload, asegúrate de que el valor sea un string entre comillas
+  if ((ruta === '/-ssave' || ruta === '/-sload') && typeof valor === 'string') {
+    if (!valor.startsWith('"')) {
+      val = `"${valor}"`;
+    }
+    tipo = 's'; // Asegura que sea string
+  }
+
   udpPort.send({
     address: ruta,
     args: [
       {
-        type: typeof valor === 'number' ? 'f' : 'i',
-        value: valor
+        type: tipo,
+        value: val
       }
     ]
   });
