@@ -155,14 +155,21 @@ function enviarComandosMultiples() {
     let resultados = [];
 
     Promise.all(lineas.map(linea => {
-        const [ruta, ...valorParts] = linea.trim().split(' ');
-        const valorStr = valorParts.join(' ');
-        if (!ruta || valorStr === '') {
+        const partes = linea.trim().split(' ');
+        const ruta = partes.shift();
+        const valorParts = partes;
+
+        if (!ruta || valorParts.length === 0) {
             resultados.push(`❌ [${linea}] → formato inválido`);
             return Promise.resolve();
         }
 
-        const valor = isNaN(valorStr) ? valorStr : parseFloat(valorStr);
+        // Detectar si es un comando compuesto (más de un valor)
+        const valor = valorParts.length > 1
+            ? valorParts.map(val => (isNaN(val) ? val : (val.includes('.') ? parseFloat(val) : parseInt(val))))
+            : isNaN(valorParts[0])
+                ? valorParts[0]
+                : (valorParts[0].includes('.') ? parseFloat(valorParts[0]) : parseInt(valorParts[0]));
 
         return fetch('/mesa/osc', {
             method: 'POST',
@@ -180,10 +187,10 @@ function enviarComandosMultiples() {
             .catch(() => {
                 resultados.push(`❌ [${linea}] error de red`);
             });
-
     })).then(() => {
         respuesta.innerHTML = resultados.map(r => `<div>${r}</div>`).join('');
     });
 }
+
 
 crearPanel();

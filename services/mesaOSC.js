@@ -10,39 +10,17 @@ const udpPort = new osc.UDPPort({
 udpPort.open();
 
 function enviarOSC(ruta, valor) {
-  let tipo = typeof valor === 'number' ? 'f' : 's';
-  let val = valor;
+  const args = Array.isArray(valor)
+    ? valor.map(v => {
+      if (typeof v === 'string') return { type: 's', value: v };
+      if (Number.isInteger(v)) return { type: 'i', value: v };
+      if (typeof v === 'number') return { type: 'f', value: v };
+      return { type: 's', value: String(v) };
+    })
+    : [{ type: typeof valor === 'number' ? 'f' : 's', value: valor }];
 
-  udpPort.on("ready", () => {
-    // /save "scene" 83 "Nueva83" ""
-    udpPort.send({
-      address: "/save",
-      args: [
-        { type: "s", value: "scene" },
-        { type: "i", value: 83 },
-        { type: "s", value: "Nueva83" },
-        { type: "s", value: "" }
-      ]
-    });
-  });
-
-  // Para /-ssave o /-sload, asegúrate de que el valor sea un string entre comillas
-  if ((ruta === '/-ssave' || ruta === '/-sload') && typeof valor === 'string') {
-    if (!valor.startsWith('"')) {
-      val = `"${valor}"`;
-    }
-    tipo = 's'; // Asegura que sea string
-  }
-
-  udpPort.send({
-    address: ruta,
-    args: [
-      {
-        type: tipo,
-        value: val
-      }
-    ]
-  });
+  udpPort.send({ address: ruta, args });
 }
+
 
 module.exports = { enviarOSC };
