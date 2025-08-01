@@ -110,4 +110,80 @@ function desmutearTodos() {
     }
 }
 
+function enviarComandoManual() {
+    const ruta = document.getElementById('rutaOsc').value.trim();
+    const valorStr = document.getElementById('valorOsc').value.trim();
+    const respuesta = document.getElementById('respuestaOsc');
+
+    if (!ruta || valorStr === '') {
+        respuesta.innerHTML = '<span class="text-danger">Debes completar ambos campos.</span>';
+        return;
+    }
+
+    const valor = isNaN(valorStr) ? valorStr : parseFloat(valorStr);
+
+    fetch('/mesa/osc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ruta, valor })
+    })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                respuesta.innerHTML = `<span class="">✅ Comando enviado correctamente a ${ruta}</span>`;
+            } else {
+                respuesta.innerHTML = `<span class="text-danger">❌ Error: ${data.error || 'No se pudo enviar el comando'}</span>`;
+            }
+        })
+        .catch(err => {
+            respuesta.innerHTML = `<span class="text-danger">❌ Error de red</span>`;
+        });
+}
+
+function enviarComandosMultiples() {
+    const textarea = document.getElementById('comandosOsc');
+    const respuesta = document.getElementById('respuestaComandosOsc');
+    const lineas = textarea.value.trim().split('\n');
+
+    if (lineas.length === 0 || textarea.value.trim() === '') {
+        respuesta.innerHTML = '<span class="text-danger">Introduce al menos un comando.</span>';
+        return;
+    }
+
+    let resultados = [];
+
+    Promise.all(lineas.map(linea => {
+        const [ruta, ...valorParts] = linea.trim().split(' ');
+        const valorStr = valorParts.join(' ');
+        if (!ruta || valorStr === '') {
+            resultados.push(`❌ [${linea}] → formato inválido`);
+            return Promise.resolve();
+        }
+
+        const valor = isNaN(valorStr) ? valorStr : parseFloat(valorStr);
+
+        return fetch('/mesa/osc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ruta, valor })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    resultados.push(`✅ [${linea}] enviado`);
+                } else {
+                    resultados.push(`❌ [${linea}] error`);
+                }
+            })
+            .catch(() => {
+                resultados.push(`❌ [${linea}] error de red`);
+            });
+
+    })).then(() => {
+        respuesta.innerHTML = resultados.map(r => `<div>${r}</div>`).join('');
+    });
+}
+
 crearPanel();

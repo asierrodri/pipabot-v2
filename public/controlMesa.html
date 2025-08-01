@@ -35,6 +35,29 @@
             <ul id="logComandos" class="list-group small"></ul>
         </div>
 
+        <hr>
+        <h5>Enviar comando OSC manual</h5>
+        <div class="mb-3">
+            <label for="rutaOsc" class="form-label">Ruta OSC</label>
+            <input type="text" class="form-control" id="rutaOsc" placeholder="/ch/01/mix/on">
+        </div>
+        <div class="mb-3">
+            <label for="valorOsc" class="form-label">Valor</label>
+            <input type="text" class="form-control" id="valorOsc" placeholder="1 o 0.75">
+        </div>
+        <button class="btn btn-primary" onclick="enviarComandoManual()">Enviar</button>
+        <div id="respuestaOsc" class="mt-2"></div>
+
+        <hr>
+        <h5>Enviar múltiples comandos OSC</h5>
+        <div class="mb-3">
+            <label for="comandosOsc" class="form-label">Comandos (uno por línea)</label>
+            <textarea class="form-control" id="comandosOsc" rows="6"
+                placeholder="/ch/01/mix/on 1\n/ch/02/mix/fader 0.75"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="enviarComandosMultiples()">Enviar todos</button>
+        <div id="respuestaComandosOsc" class="mt-2"></div>
+
     </div>
 
     <script src="/js/controlMesa.js"></script>
