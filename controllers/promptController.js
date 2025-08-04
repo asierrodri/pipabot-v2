@@ -1,12 +1,13 @@
 const { askGemini } = require('../services/geminiService');
+const { askDeepseek } = require('../services/deepseekService');
 
 const handlePrompt = async (req, res) => {
   const mensaje = req.body.mensaje;
   const archivo = req.file;
+  const modelo = process.env.MODEL_PROVIDER || 'GEMINI';
 
   let historial = [];
 
-  // Cargar historial del body si lo hay
   if (req.body.historial) {
     try {
       historial = JSON.parse(req.body.historial);
@@ -16,12 +17,10 @@ const handlePrompt = async (req, res) => {
     }
   }
 
-  // Añadir mensaje si existe
   if (mensaje) {
     historial.push({ role: 'user', text: mensaje });
   }
 
-  // Añadir contenido del archivo si existe
   if (archivo) {
     const contenido = archivo.buffer.toString('utf-8');
     historial.push({
@@ -30,19 +29,27 @@ const handlePrompt = async (req, res) => {
     });
   }
 
-  // Validación final
   if (historial.length === 0) {
     return res.status(400).json({ error: 'No se recibió mensaje ni archivo' });
   }
 
   try {
     const username = req.session?.user?.username || 'Usuario desconocido';
-    const respuesta = await askGemini(historial, username);
+    let respuesta;
+
+    if (modelo.toUpperCase() === 'DEEPSEEK') {
+      respuesta = await askDeepseek(historial, username);
+    } else {
+      respuesta = await askGemini(historial, username);
+    }
+
     res.json({ respuesta });
   } catch (error) {
     console.error('❌ Error en el controlador:', error.message);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('🔍 Detalle:', error.response?.data || error);
+    res.status(500).json({ error: 'Error al generar respuesta' });
   }
+
 };
 
 module.exports = { handlePrompt };
