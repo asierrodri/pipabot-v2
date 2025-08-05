@@ -14,7 +14,8 @@ const getPromptFromSections = (username) => {
           modo: '',
           espacio: '',
           material: '',
-          normas: ''
+          normas: '',
+          mesa: ''
         };
 
         for (const row of results) {
@@ -32,9 +33,11 @@ ${secciones.material}
 
 ${secciones.normas}
 
+${secciones.mesa}
+
 Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
-
+        console.log('🧠 PROMPT COMPLETO ENVIADO A GEMINI:\n', prompt);
         resolve(prompt);
       }
     );
@@ -63,23 +66,34 @@ const askGemini = async (historial, username) => {
   return response.data.candidates[0].content.parts[0].text;
 };
 
-const generarTituloConGemini = async (historial) => {
+const { askDeepseek } = require('./deepseekService');
+
+const generarTitulo = async (historial, username = 'Usuario') => {
   const intro = `Genera un título breve y descriptivo para esta conversación. No uses comillas ni puntuación innecesaria. Máximo 100 caracteres.`;
 
   const resumen = historial.slice(0, 2).map(m =>
     `${m.role === 'user' ? 'Usuario' : 'Bot'}: ${m.text}`
   ).join('\n');
 
-  const contents = [
-    {
-      role: 'user',
-      parts: [{ text: `${intro}\n\n${resumen}` }]
-    }
-  ];
+  const modelo = process.env.MODEL_PROVIDER || 'GEMINI';
 
-  const response = await axios.post(GEMINI_API_URL, { contents });
-  return response.data.candidates[0].content.parts[0].text.trim().slice(0, 100);
+  if (modelo.toUpperCase() === 'DEEPSEEK') {
+    const prompt = [
+      { role: 'user', text: `${intro}\n\n${resumen}` }
+    ];
+    const respuesta = await askDeepseek(prompt, username);
+    return respuesta?.trim().slice(0, 100) || 'Sin título';
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: `${intro}\n\n${resumen}` }]
+      }
+    ];
+    const response = await axios.post(GEMINI_API_URL, { contents });
+    return response.data.candidates[0].content.parts[0].text.trim().slice(0, 100);
+  }
 };
 
-module.exports = { askGemini, generarTituloConGemini };
+module.exports = { askGemini, generarTitulo };
 

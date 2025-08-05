@@ -16,7 +16,8 @@ const getPromptFromSections = (username) => {
                     modo: '',
                     espacio: '',
                     material: '',
-                    normas: ''
+                    normas: '',
+                    mesa: ''
                 };
 
                 for (const row of results) {
@@ -34,9 +35,11 @@ ${secciones.material}
 
 ${secciones.normas}
 
+${secciones.mesa}
+
 Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
-
+                console.log('🧠 PROMPT COMPLETO ENVIADO A DEEPSEEK:\n', prompt);
                 resolve(prompt);
             }
         );

@@ -1,4 +1,4 @@
-const seccionesPrompt = ['modo', 'espacio', 'material', 'normas'];
+const seccionesPrompt = ['modo', 'espacio', 'material', 'normas', 'mesa'];
 
 async function cargarSeccionesPrompt() {
   try {

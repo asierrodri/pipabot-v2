@@ -21,7 +21,7 @@ router.get('/usuario', (req, res) => {
 
 const db = require('../config/db'); // 👈 asegúrate de tener esta línea arriba
 
-const { generarTituloConGemini } = require('../services/geminiService');
+const { generarTitulo } = require('../services/geminiService');
 
 const bcrypt = require('bcrypt');
 const axios = require('axios');
@@ -71,7 +71,7 @@ router.post('/guardar-historial', async (req, res) => {
   }
 
   try {
-    const titulo = await generarTituloConGemini(historial);
+    const titulo = await generarTitulo(historial);
 
     db.query(
       'INSERT INTO historiales (username, datos, titulo) VALUES (?, ?, ?)',
