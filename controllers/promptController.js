@@ -5,6 +5,9 @@ const handlePrompt = async (req, res) => {
   const mensaje = req.body.mensaje;
   const archivo = req.file;
   const modelo = process.env.MODEL_PROVIDER || 'GEMINI';
+  const modoOscRaw = req.body.modoOsc;
+  const modoOsc = modoOscRaw === 'automatico' ? 'automatico' : 'manual';
+
 
   let historial = [];
 
@@ -38,9 +41,9 @@ const handlePrompt = async (req, res) => {
     let respuesta;
 
     if (modelo.toUpperCase() === 'DEEPSEEK') {
-      respuesta = await askDeepseek(historial, username);
+      respuesta = await askDeepseek({ historial, username, modoOsc });
     } else {
-      respuesta = await askGemini(historial, username);
+      respuesta = await askGemini({ historial, username, modoOsc });
     }
 
     res.json({ respuesta });

@@ -19,6 +19,8 @@ function enviarOSC(ruta, valor) {
     })
     : [{ type: typeof valor === 'number' ? 'f' : 's', value: valor }];
 
+  console.log(`🔁 Enviando comando OSC → ${ruta} → ${JSON.stringify(args)}`);
+
   udpPort.send({ address: ruta, args });
 }
 

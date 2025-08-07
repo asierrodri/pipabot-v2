@@ -39,18 +39,20 @@ ${secciones.mesa}
 
 Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
-                console.log('🧠 PROMPT COMPLETO ENVIADO A DEEPSEEK:\n', prompt);
                 resolve(prompt);
             }
         );
     });
 };
 
-async function askDeepseek(historial, username) {
+async function askDeepseek({ historial, username, modoOsc = 'manual' }) {
     const prompt = await getPromptFromSections(username);
+    const promptFinal = `${prompt}
+
+    Modo actual: ${modoOsc === 'automatico' ? 'Responder solo con comandos OSC en JSON' : 'Responder con comandos en texto plano'}`;
 
     const mensajes = [
-        { role: 'system', content: prompt },
+        { role: 'system', content: promptFinal },
         ...historial.map(m => ({
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.text

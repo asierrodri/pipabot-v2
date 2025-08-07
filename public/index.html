@@ -172,6 +172,15 @@
 
     <h1 class="text-center mb-4">Pregunta a PipaBot <span>💬</span></h1>
 
+    <!-- Selector de modo OSC -->
+    <div class="mb-3 d-flex gap-3 align-items-center">
+      <label for="selectorModoOsc" class="form-label mb-0 text-muted">Modo OSC:</label>
+      <select id="selectorModoOsc" class="form-select form-select-sm" style="width: auto;">
+        <option value="manual">Manual</option>
+        <option value="auto">Automático</option>
+      </select>
+    </div>
+
     <!-- Respuesta del bot -->
     <div id="chat" class="d-flex flex-column gap-2 p-2 flex-grow-1 overflow-auto" style="min-height: 300px;"></div>
 

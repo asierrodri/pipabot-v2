@@ -42,6 +42,24 @@ document.addEventListener('DOMContentLoaded', () => {
   actualizarBotonVoz();
   actualizarIconoAltavoz();
 
+  // Inicializar selector de modo OSC
+  const selectorModo = document.getElementById('selectorModoOsc');
+  if (selectorModo) {
+    // Forzar modo correcto
+    const modoGuardado = localStorage.getItem('modoOsc');
+    const modoValido = modoGuardado === 'automatico' ? 'automatico' : 'manual';
+    localStorage.setItem('modoOsc', modoValido); // 🔧 siempre lo corrige
+
+    // Ajustar el selector visual
+    selectorModo.value = modoValido === 'automatico' ? 'auto' : 'manual';
+
+    // Guardar al cambiar
+    selectorModo.addEventListener('change', () => {
+      const nuevoModo = selectorModo.value === 'auto' ? 'automatico' : 'manual';
+      localStorage.setItem('modoOsc', nuevoModo);
+    });
+  }
+
   // Mostrar historial con hora
   const chat = document.getElementById('chat');
   for (const msg of historial) {
@@ -240,7 +258,6 @@ async function preguntar() {
 
   if (!mensaje && !archivo) return;
 
-  // 🔸 Construir texto que se mostrará en la burbuja del usuario
   let textoUsuario = '';
   if (mensaje) textoUsuario += mensaje;
   if (archivo) {
@@ -262,11 +279,10 @@ async function preguntar() {
   chat.appendChild(burbujaUsuario);
 
   mensajeInput.value = '';
-  archivoInput.value = ''; // limpia el input real
-  archivoSeleccionado = null; // limpia variable de referencia
-  document.getElementById('archivoNombre').textContent = ''; // limpia el texto visible
+  archivoInput.value = '';
+  archivoSeleccionado = null;
+  document.getElementById('archivoNombre').textContent = '';
 
-  // Mostrar burbuja "..." mientras responde
   const burbujaBot = document.createElement('div');
   burbujaBot.className = 'd-flex justify-content-start w-100 align-items-end gap-2';
   burbujaBot.innerHTML = `
@@ -278,14 +294,14 @@ async function preguntar() {
   chat.appendChild(burbujaBot);
   chat.scrollTop = chat.scrollHeight;
 
-  // Preparar FormData para enviar al servidor
   const formData = new FormData();
   if (mensaje) formData.append('mensaje', mensaje);
   if (archivo) formData.append('archivo', archivo);
   formData.append('historial', JSON.stringify(historial));
+  formData.append('modoOsc', localStorage.getItem('modoOsc') || 'manual');
 
   try {
-    if ('speechSynthesis' in window) speechSynthesis.cancel(); // Detener voz si ya está hablando
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
 
     const res = await fetch('/preguntar', {
       method: 'POST',
@@ -293,25 +309,58 @@ async function preguntar() {
     });
 
     const data = await res.json();
+    let respuesta = data.respuesta || '';
 
-    const horaBot = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-    burbujaBot.querySelector('div').innerHTML = `
-      <div class="small text-muted mb-1">${horaBot}</div>
-      ${data.respuesta || data.error}
-    `;
-
-    if (data.respuesta) {
-      if ('speechSynthesis' in window) speechSynthesis.cancel();
-      hablar(data.respuesta);
+    // Limpieza de JSON en caso de respuesta en bloque ```json
+    let textoLimpio = respuesta.trim();
+    if (textoLimpio.startsWith('```json') || textoLimpio.startsWith('```')) {
+      textoLimpio = textoLimpio.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
     }
 
-    // Guardar historial
+    try {
+      const comandos = JSON.parse(textoLimpio);
+      if (Array.isArray(comandos) && comandos.every(c => c.ruta && c.valor !== undefined)) {
+        for (const cmd of comandos) {
+          await fetch('/mesa/osc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ruta: cmd.ruta, valor: cmd.valor })
+          });
+        }
+
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        burbujaBot.querySelector('div').innerHTML = `
+          <div class="small text-muted mb-1">${hora}</div>
+          Comandos ejecutados correctamente ✅
+        `;
+        chat.scrollTop = chat.scrollHeight;
+
+        const timestamp = new Date().toISOString();
+        historial.push({ role: 'user', text: textoUsuario, timestamp });
+        historial.push({ role: 'model', text: 'Comandos ejecutados correctamente ✅', timestamp });
+        localStorage.setItem('historial', JSON.stringify(historial));
+
+        return;
+      }
+    } catch (e) {
+      // No era JSON válido, mostrar texto plano
+    }
+
+    const horaBot = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    burbujaBot.querySelector('div').innerHTML = `
+      <div class="small text-muted mb-1">${horaBot}</div>
+      ${respuesta}
+    `;
+
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      hablar(respuesta);
+    }
+
     const timestamp = new Date().toISOString();
     historial.push({ role: 'user', text: textoUsuario, timestamp });
-    historial.push({ role: 'model', text: data.respuesta || data.error, timestamp: new Date().toISOString() });
+    historial.push({ role: 'model', text: respuesta, timestamp });
     localStorage.setItem('historial', JSON.stringify(historial));
-
   } catch (err) {
     burbujaBot.querySelector('div').textContent = 'Error al conectar con el servidor';
   }

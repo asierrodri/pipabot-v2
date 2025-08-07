@@ -37,7 +37,6 @@ ${secciones.mesa}
 
 Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
-        console.log('🧠 PROMPT COMPLETO ENVIADO A GEMINI:\n', prompt);
         resolve(prompt);
       }
     );
@@ -45,8 +44,11 @@ Responde siempre de forma breve, directa y sin repetir cosas.
 };
 
 // Función principal para enviar conversación a Gemini
-const askGemini = async (historial, username) => {
+const askGemini = async ({ historial, username, modoOsc = 'manual' }) => {
   const prompt = await getPromptFromSections(username);
+  const promptFinal = `${prompt}
+
+  Modo actual: ${modoOsc === 'automatico' ? 'Responder solo con comandos OSC en JSON' : 'Responder con comandos en texto plano'}`;
 
   // Limitar historial a los últimos 10 mensajes si es muy largo
   const historialReciente = historial.slice(-10);
@@ -54,7 +56,7 @@ const askGemini = async (historial, username) => {
   const contents = [
     {
       role: 'model',
-      parts: [{ text: prompt }]
+      parts: [{ text: promptFinal }]
     },
     ...historialReciente.map(m => ({
       role: m.role,
