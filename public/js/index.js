@@ -45,19 +45,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar selector de modo OSC
   const selectorModo = document.getElementById('selectorModoOsc');
   if (selectorModo) {
-    // Forzar modo correcto
-    const modoGuardado = localStorage.getItem('modoOsc');
-    const modoValido = modoGuardado === 'automatico' ? 'automatico' : 'manual';
-    localStorage.setItem('modoOsc', modoValido); // 🔧 siempre lo corrige
+    const role = localStorage.getItem('role') || 'user';
 
-    // Ajustar el selector visual
-    selectorModo.value = modoValido === 'automatico' ? 'auto' : 'manual';
+    // Ocultar opción automática si no es admin
+    if (role !== 'admin') {
+      selectorModo.innerHTML = '<option value="manual">Manual</option>';
+      localStorage.setItem('modoOsc', 'manual');
+    } else {
+      // Admin sí puede elegir
+      const modoGuardado = localStorage.getItem('modoOsc') === 'automatico' ? 'automatico' : 'manual';
+      localStorage.setItem('modoOsc', modoGuardado);
+      selectorModo.value = modoGuardado === 'automatico' ? 'auto' : 'manual';
 
-    // Guardar al cambiar
-    selectorModo.addEventListener('change', () => {
-      const nuevoModo = selectorModo.value === 'auto' ? 'automatico' : 'manual';
-      localStorage.setItem('modoOsc', nuevoModo);
-    });
+      selectorModo.addEventListener('change', () => {
+        const nuevoModo = selectorModo.value === 'auto' ? 'automatico' : 'manual';
+        localStorage.setItem('modoOsc', nuevoModo);
+      });
+    }
   }
 
   // Mostrar historial con hora
