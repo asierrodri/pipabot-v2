@@ -80,12 +80,19 @@ const generarTitulo = async (historial, username = 'Usuario') => {
   const modelo = process.env.MODEL_PROVIDER || 'GEMINI';
 
   if (modelo.toUpperCase() === 'DEEPSEEK') {
-    const prompt = [
+    const resumenHistorial = [
       { role: 'user', text: `${intro}\n\n${resumen}` }
     ];
-    const respuesta = await askDeepseek(prompt, username);
+
+    const respuesta = await askDeepseek({
+      historial: resumenHistorial,
+      username,
+      modoOsc: 'manual'
+    });
+
     return respuesta?.trim().slice(0, 100) || 'Sin título';
-  } else {
+  }
+  else {
     const contents = [
       {
         role: 'user',

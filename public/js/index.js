@@ -6,9 +6,18 @@ fetch('/auth/usuario')
   .then(data => {
     if (data.username) {
       document.getElementById('nombreUsuario').textContent = data.username;
+
+      // Mostrar Control Mesa a cualquier usuario autenticado
+      const enlaceControlMesa = document.getElementById('enlaceControlMesa');
+      if (enlaceControlMesa) enlaceControlMesa.style.display = 'inline-block';
+
+      const enlaceControlMesaMenu = document.getElementById('enlaceControlMesaMenu');
+      if (enlaceControlMesaMenu) enlaceControlMesaMenu.style.display = 'block';
+
+      // Solo admin ve el panel admin
       if (localStorage.getItem('role') === 'admin') {
-        const enlaceAdmin = document.getElementById('enlaceAdmin');
-        if (enlaceAdmin) enlaceAdmin.style.display = 'inline-block';
+        document.getElementById('enlaceAdmin').style.display = 'inline-block';
+        document.getElementById('enlaceAdminMenu').style.display = 'block';
       }
     }
   })
@@ -20,6 +29,25 @@ fetch('/auth/usuario')
 // 💬 Historial de mensajes (localStorage)
 // =========================
 let historial = JSON.parse(localStorage.getItem('historial')) || [];
+
+let historialesCache = [];           // cache general
+let historialesCacheModal = [];      // cache modal (opcional)
+
+const normalizar = (s) =>
+  (s ?? '').toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // sin tildes
+
+function filtrarHistoriales(lista, termino) {
+  const q = normalizar(termino);
+  if (!q) return lista;
+  return lista.filter(h => {
+    const titulo = normalizar(h.titulo || '');
+    const fecha = normalizar(new Date(h.fecha).toLocaleString());
+    const id = String(h.id);
+    return titulo.includes(q) || fecha.includes(q) || id.includes(q);
+  });
+}
+
 
 // =========================
 // 🚀 Ejecutar al cargar página
@@ -135,48 +163,59 @@ async function cargarHistorialesEnPanelLateral() {
   try {
     const res = await fetch('/auth/historiales');
     const historiales = await res.json();
+    historialesCache = Array.isArray(historiales) ? historiales : [];
+
+    const input = document.getElementById('buscadorLateral');
+    const fil = filtrarHistoriales(historialesCache, input?.value || '');
 
     lista.innerHTML = '';
 
-    if (!Array.isArray(historiales) || historiales.length === 0) {
+    if (!fil.length) {
       lista.innerHTML = '<li class="list-group-item text-muted">Sin conversaciones</li>';
-    } else {
-      historiales.forEach(hist => {
-        const fecha = new Date(hist.fecha).toLocaleDateString();
-        const titulo = hist.titulo || `Conversación del ${fecha}`;
-
-        const li = document.createElement('li');
-        li.className = 'list-group-item py-1 px-2';
-        li.style.cursor = 'pointer';
-        li.innerHTML = `
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="me-2 multi-line-ellipsis" title="${titulo}">${titulo}</span>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-light border dropdown-toggle p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="img/dots.svg" alt="Menú" width="16" height="16">
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item editar-lateral" data-id="${hist.id}" data-titulo="${escapeHtml(titulo)}">Editar</a></li>
-                <li><a class="dropdown-item text-danger" onclick="eliminarHistorialLateral(${hist.id})">Eliminar</a></li>
-              </ul>
-            </div>
-          </div>
-        `;
-
-        li.addEventListener('click', e => {
-          if (!e.target.closest('.dropdown')) {
-            cargarHistorialPorId(hist.id);
-          }
-        });
-
-        // Evitar que el clic en el botón de menú propague y dispare el evento del <li>
-        li.querySelector('.dropdown-toggle')?.addEventListener('click', e => {
-          e.stopPropagation();
-        });
-
-        lista.appendChild(li);
-      });
+      return;
     }
+
+    fil.forEach(hist => {
+      const fecha = new Date(hist.fecha).toLocaleDateString();
+      const titulo = hist.titulo || `Conversación del ${fecha}`;
+
+      const li = document.createElement('li');
+      li.className = 'list-group-item py-1 px-2';
+      li.style.cursor = 'pointer';
+      li.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="me-2 multi-line-ellipsis" title="${titulo}">${titulo}</span>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-light border dropdown-toggle p-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="img/dots.svg" alt="Menú" width="16" height="16">
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item editar-lateral" data-id="${hist.id}" data-titulo="${escapeHtml(titulo)}">Editar</a></li>
+              <li><a class="dropdown-item text-danger" onclick="eliminarHistorialLateral(${hist.id})">Eliminar</a></li>
+            </ul>
+          </div>
+        </div>
+      `;
+
+      li.addEventListener('click', e => {
+        if (!e.target.closest('.dropdown')) {
+          cargarHistorialPorId(hist.id);
+        }
+      });
+
+      li.querySelector('.dropdown-toggle')?.addEventListener('click', e => {
+        e.stopPropagation();
+      });
+
+      lista.appendChild(li);
+    });
+
+    // listener de búsqueda (solo lo añadimos una vez)
+    if (input && !input.dataset.bound) {
+      input.addEventListener('input', () => cargarHistorialesEnPanelLateral());
+      input.dataset.bound = '1';
+    }
+
   } catch (err) {
     lista.innerHTML = '<li class="list-group-item text-danger">Error al cargar</li>';
   }
@@ -549,6 +588,11 @@ function irAlPanelAdmin() {
   window.location.href = '/admin';
 }
 
+function irAlControlMesa() {
+  if ('speechSynthesis' in window) speechSynthesis.cancel(); // detener voz si está activa
+  window.location.href = '/control-mesa.html';
+}
+
 async function abrirModalHistoriales(noAbrirModal = false) {
   const lista = document.getElementById('listaHistoriales');
   lista.innerHTML = '<li class="list-group-item text-muted">Cargando...</li>';
@@ -556,24 +600,27 @@ async function abrirModalHistoriales(noAbrirModal = false) {
   try {
     const res = await fetch('/auth/historiales');
     const historiales = await res.json();
+    historialesCacheModal = Array.isArray(historiales) ? historiales : [];
 
-    lista.innerHTML = ''; // limpiar antes de rellenar
+    const input = document.getElementById('buscadorModal');
+    const fil = filtrarHistoriales(historialesCacheModal, input?.value || '');
 
-    if (!Array.isArray(historiales) || historiales.length === 0) {
+    lista.innerHTML = '';
+
+    if (!fil.length) {
       const li = document.createElement('li');
       li.className = 'list-group-item text-muted text-center';
       li.textContent = 'No hay historiales guardados';
       lista.appendChild(li);
     } else {
-      historiales.forEach(hist => {
+      fil.forEach(hist => {
         const fecha = new Date(hist.fecha).toLocaleString();
         const titulo = hist.titulo || `Conversación del ${fecha}`;
 
         const li = document.createElement('li');
         li.className = 'list-group-item';
-        li.style.cursor = 'pointer'; // ✅ para que todo el recuadro parezca clicable
+        li.style.cursor = 'pointer';
 
-        // ✅ Click en toda la tarjeta excepto en el dropdown
         li.addEventListener('click', e => {
           if (!e.target.closest('.dropdown')) {
             cargarHistorialPorId(hist.id);
@@ -585,14 +632,12 @@ async function abrirModalHistoriales(noAbrirModal = false) {
 
         const span = document.createElement('span');
         span.innerHTML = `
-        <strong>${escapeHtml(titulo)}</strong><br>
-        <small class="text-muted">${fecha}</small>
+          <strong>${escapeHtml(titulo)}</strong><br>
+          <small class="text-muted">${fecha}</small>
         `;
 
-        // Menú de 3 puntos
         const dropdown = document.createElement('div');
         dropdown.className = 'dropdown';
-
         dropdown.innerHTML = `
           <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opciones">
             <img src="img/dots.svg" width="18" height="18" alt="Menú">
@@ -613,6 +658,14 @@ async function abrirModalHistoriales(noAbrirModal = false) {
     if (!noAbrirModal) {
       const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHistoriales'));
       modal.show();
+
+      // Enfocar y vincular búsqueda cuando se abra
+      const input = document.getElementById('buscadorModal');
+      if (input && !input.dataset.bound) {
+        setTimeout(() => input.focus(), 150);
+        input.addEventListener('input', () => abrirModalHistoriales(true));
+        input.dataset.bound = '1';
+      }
     }
 
   } catch (err) {
