@@ -341,7 +341,7 @@ async function preguntar() {
   if (mensaje) formData.append('mensaje', mensaje);
   if (archivo) formData.append('archivo', archivo);
   formData.append('historial', JSON.stringify(historial));
-  formData.append('modoOsc', localStorage.getItem('modoOsc') || 'manual');
+  formData.append('modoOsc', localStorage.getItem('modoOsc') || 'manual'); // ← el back lo validará por rol
 
   try {
     if ('speechSynthesis' in window) speechSynthesis.cancel();
@@ -354,41 +354,65 @@ async function preguntar() {
     const data = await res.json();
     let respuesta = data.respuesta || '';
 
-    // Limpieza de JSON en caso de respuesta en bloque ```json
+    // ←— NUEVO: lee el modo actual del cliente
+    const modoActual = localStorage.getItem('modoOsc') === 'automatico' ? 'automatico' : 'manual';
+
+    // Limpieza de bloque ```json
     let textoLimpio = respuesta.trim();
     if (textoLimpio.startsWith('```json') || textoLimpio.startsWith('```')) {
       textoLimpio = textoLimpio.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
     }
 
-    try {
-      const comandos = JSON.parse(textoLimpio);
-      if (Array.isArray(comandos) && comandos.every(c => c.ruta && c.valor !== undefined)) {
-        for (const cmd of comandos) {
-          await fetch('/mesa/osc', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ruta: cmd.ruta, valor: cmd.valor })
-          });
+    // ←— NUEVO: solo intentamos parsear/ejecutar JSON si el modo es automático
+    if (modoActual === 'automatico') {
+      try {
+        const comandos = JSON.parse(textoLimpio);
+        // tras: const comandos = JSON.parse(textoLimpio);
+        if (Array.isArray(comandos)) {
+          if (comandos.length === 0) {
+            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            burbujaBot.querySelector('div').innerHTML = `
+      <div class="small text-muted mb-1">${hora}</div>
+      (Automático) No se detectaron comandos para ejecutar.
+    `;
+            const timestamp = new Date().toISOString();
+            historial.push({ role: 'user', text: textoUsuario, timestamp });
+            historial.push({ role: 'model', text: '(Automático) No se detectaron comandos para ejecutar.', timestamp });
+            localStorage.setItem('historial', JSON.stringify(historial));
+            chat.scrollTop = chat.scrollHeight;
+            return;
+          }
+          // ...tu bloque actual que ejecuta comandos y hace return...
         }
 
-        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        burbujaBot.querySelector('div').innerHTML = `
-          <div class="small text-muted mb-1">${hora}</div>
-          Comandos ejecutados correctamente ✅
-        `;
-        chat.scrollTop = chat.scrollHeight;
+        if (Array.isArray(comandos) && comandos.every(c => c.ruta && c.valor !== undefined)) {
+          for (const cmd of comandos) {
+            await fetch('/mesa/osc', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ruta: cmd.ruta, valor: cmd.valor })
+            });
+          }
 
-        const timestamp = new Date().toISOString();
-        historial.push({ role: 'user', text: textoUsuario, timestamp });
-        historial.push({ role: 'model', text: 'Comandos ejecutados correctamente ✅', timestamp });
-        localStorage.setItem('historial', JSON.stringify(historial));
+          const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          burbujaBot.querySelector('div').innerHTML = `
+            <div class="small text-muted mb-1">${hora}</div>
+            Comandos ejecutados correctamente ✅
+          `;
+          chat.scrollTop = chat.scrollHeight;
 
-        return;
+          const timestamp = new Date().toISOString();
+          historial.push({ role: 'user', text: textoUsuario, timestamp });
+          historial.push({ role: 'model', text: 'Comandos ejecutados correctamente ✅', timestamp });
+          localStorage.setItem('historial', JSON.stringify(historial));
+          return; // ← importante: no seguir mostrando texto
+        }
+      } catch (e) {
+        // No era JSON válido → caerá a mostrar texto plano
       }
-    } catch (e) {
-      // No era JSON válido, mostrar texto plano
     }
 
+    // Modo manual (o no era un JSON válido): muestra texto plano
     const horaBot = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     burbujaBot.querySelector('div').innerHTML = `
       <div class="small text-muted mb-1">${horaBot}</div>

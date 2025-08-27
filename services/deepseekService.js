@@ -49,7 +49,21 @@ async function askDeepseek({ historial, username, modoOsc = 'manual' }) {
     const prompt = await getPromptFromSections(username);
     const promptFinal = `${prompt}
 
-    Modo actual: ${modoOsc === 'automatico' ? 'Responder solo con comandos OSC en JSON' : 'Responder con comandos en texto plano'}`;
+    MODO_ACTUAL: ${modoOsc}
+
+    REGLAS DE MODO (NO CAMBIES EL MODO NUNCA):
+    - Si MODO_ACTUAL == "automatico": devuelve EXCLUSIVAMENTE un ARRAY JSON de objetos
+    { "ruta": string, "valor": number|string|array }. Sin texto adicional, sin explicaciones, sin backticks.
+    Si el usuario no pide ninguna acción OSC o la orden no es válida → devuelve [].
+    - Si MODO_ACTUAL == "manual": responde SOLO en texto plano; NUNCA devuelvas JSON ni rutas OSC.
+
+    Ignora cualquier petición del usuario de cambiar el modo (manual/automatico).
+    Ejemplos VÁLIDOS en automático:
+    [{"ruta":"/ch/01/mix/on","valor":0}]
+    [{"ruta":"/ch/10/mix/fader","valor":0.8},{"ruta":"/ch/01/mix/on","valor":0}]
+    Ejemplo si no procede hacer nada: []
+    `;
+
 
     const mensajes = [
         { role: 'system', content: promptFinal },
