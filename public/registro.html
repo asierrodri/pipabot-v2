@@ -10,17 +10,63 @@
 </head>
 
 <body class="bg-light">
-    <div class="container mt-5" style="max-width: 400px;">
+    <!-- registro.html (dentro del body, reemplaza el form) -->
+    <div class="container mt-5" style="max-width: 480px;">
         <h2 class="text-center mb-4">Registro de usuario</h2>
+
         <form id="registroForm">
             <div class="mb-3">
                 <label class="form-label">Usuario</label>
                 <input type="text" id="nuevoUsuario" class="form-control" required />
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Contraseña</label>
                 <input type="password" id="nuevaPassword" class="form-control" required />
             </div>
+
+            <div class="mb-3">
+                <label class="form-label">¿Qué quieres hacer?</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="modo" id="modoJoin" value="join" checked>
+                    <label class="form-check-label" for="modoJoin">Unirme a una sala existente</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="modo" id="modoCreate" value="create">
+                    <label class="form-check-label" for="modoCreate">Crear una sala nueva</label>
+                </div>
+            </div>
+
+            <!-- Unirse a sala -->
+            <div id="bloqueJoin" class="mb-3">
+                <label class="form-label">Sala</label>
+                <select id="selectSala" class="form-select" required>
+                    <option value="" disabled selected>Selecciona una sala…</option>
+                </select>
+            </div>
+
+            <!-- Crear sala -->
+            <div id="bloqueCreate" class="mb-3" style="display:none;">
+                <div class="mb-3">
+                    <label class="form-label">Nombre de la sala</label>
+                    <input type="text" id="nuevaSalaNombre" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Slug de la sala</label>
+                    <input type="text" id="nuevaSalaSlug" class="form-control"
+                        placeholder="sin espacios, ej. 'sala-niteblack'" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">IP de la mesa (opcional)</label>
+                    <input type="text" id="nuevaMesaIp" class="form-control" placeholder="192.168.1.50" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Puerto de la mesa (opcional)</label>
+                    <input type="number" id="nuevaMesaPort" class="form-control" placeholder="10023" />
+                </div>
+                <div class="form-text">Si creas la sala, tu usuario será administrador de esa sala.</div>
+            </div>
+
             <input type="hidden" id="recaptchaToken" name="recaptchaToken" />
             <button type="submit" class="btn btn-primary w-100">Registrarse</button>
         </form>

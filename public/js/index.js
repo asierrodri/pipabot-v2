@@ -20,6 +20,11 @@ fetch('/auth/usuario')
         document.getElementById('enlaceAdminMenu').style.display = 'block';
       }
     }
+
+    if (data.sala_id) {
+      document.getElementById('nombreSala').textContent = data.sala_id;
+    }
+
   })
   .catch(err => {
     console.error('Error al obtener el nombre de usuario:', err);

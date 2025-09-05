@@ -66,6 +66,7 @@ const handlePrompt = async (req, res) => {
 
   // 3) Bloquear modo automático a no-admin
   const role = req.session?.user?.role || 'user';
+  const salaId = req.session?.user?.sala_id || null;
   let modoOsc = req.body.modoOsc === 'automatico' ? 'automatico' : 'manual';
   if (modoOsc === 'automatico' && role !== 'admin') {
     modoOsc = 'manual';
@@ -75,8 +76,8 @@ const handlePrompt = async (req, res) => {
   try {
     const username = req.session?.user?.username || 'Usuario desconocido';
     const respuestaRaw = (modelo.toUpperCase() === 'DEEPSEEK')
-      ? await askDeepseek({ historial, username, modoOsc })
-      : await askGemini({ historial, username, modoOsc });
+      ? await askDeepseek({ historial, username, modoOsc, salaId })
+      : await askGemini({ historial, username, modoOsc, salaId });
 
     // 🔒 Garantizar array JSON cuando estamos en automático
     const respuesta = (modoOsc === 'automatico')

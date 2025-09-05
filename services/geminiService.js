@@ -3,26 +3,28 @@ const { GEMINI_API_URL } = require('../config/geminiConfig');
 const db = require('../config/db');
 
 // Obtener prompt desde la base de datos por secciones
-const getPromptFromSections = (username) => {
+const getPromptFromSections = (username, salaId) => {
   return new Promise((resolve, reject) => {
-    db.query(
-      'SELECT seccion, contenido FROM prompt_secciones WHERE es_actual = TRUE',
-      (err, results) => {
-        if (err || !results.length) return reject('❌ No hay prompts activos');
+    const sql = salaId
+      ? 'SELECT seccion, contenido FROM prompt_secciones WHERE es_actual = TRUE AND sala_id = ?'
+      : 'SELECT seccion, contenido FROM prompt_secciones WHERE es_actual = TRUE';
+    const params = salaId ? [salaId] : [];
+    db.query(sql, params, (err, results) => {
+      if (err || !results.length) return reject('❌ No hay prompts activos');
 
-        const secciones = {
-          modo: '',
-          espacio: '',
-          material: '',
-          normas: '',
-          mesa: ''
-        };
+      const secciones = {
+        modo: '',
+        espacio: '',
+        material: '',
+        normas: '',
+        mesa: ''
+      };
 
-        for (const row of results) {
-          secciones[row.seccion] = row.contenido;
-        }
+      for (const row of results) {
+        secciones[row.seccion] = row.contenido;
+      }
 
-        const prompt = `
+      const prompt = `
 Mi nombre es ${username}.
 
 ${secciones.modo}
@@ -37,15 +39,15 @@ ${secciones.mesa}
 
 Responde siempre de forma breve, directa y sin repetir cosas.
         `.trim();
-        resolve(prompt);
-      }
+      resolve(prompt);
+    }
     );
   });
 };
 
 // Función principal para enviar conversación a Gemini
-const askGemini = async ({ historial, username, modoOsc = 'manual' }) => {
-  const prompt = await getPromptFromSections(username);
+const askGemini = async ({ historial, username, modoOsc = 'manual', salaId}) => {
+  const prompt = await getPromptFromSections(username, salaId);
   const promptFinal = `${prompt}
 
   MODO_ACTUAL: ${modoOsc}
