@@ -10,54 +10,134 @@
 </head>
 
 <body class="bg-light">
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">Control de Mesa Behringer X32</h2>
-            <div>
-                <a href="/index.html" class="btn btn-outline-secondary btn-sm">Volver al chat</a>
-                <button class="btn btn-danger btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
+    <div class="container-fluid py-3">
+        <div class="row g-3">
+            <!-- Left: Overview canales -->
+            <div class="col-12 col-lg-3">
+                <div class="card h-100">
+                    <div class="card-header">Canales</div>
+                    <div class="card-body p-2">
+                        <ul id="listaCanales" class="list-group list-group-flush small"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Tira de canal -->
+            <div class="col-12 col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span id="cabeceraCanal">Canal --</span>
+                        <select id="selectorCanal" class="form-select form-select-sm" style="width:auto;"></select>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Preamp -->
+                            <div class="col-12 col-md-6">
+                                <h6>Preamp</h6>
+                                <label class="form-label small">Gain</label>
+                                <input id="preamp-gain" type="range" min="0" max="60" step="0.5" class="form-range">
+                                <div class="form-check form-switch">
+                                    <input id="preamp-phantom" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label small" for="preamp-phantom">+48V</label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input id="preamp-invert" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label small" for="preamp-invert">Invert</label>
+                                </div>
+                            </div>
+
+                            <!-- Mix -->
+                            <div class="col-12 col-md-6">
+                                <h6>Mix</h6>
+                                <label class="form-label small">Fader</label>
+                                <input id="mix-fader" type="range" min="0" max="1" step="0.01" class="form-range">
+                                <div class="d-flex gap-2">
+                                    <div class="form-check form-switch">
+                                        <input id="mix-mute" class="form-check-input" type="checkbox">
+                                        <label class="form-check-label small" for="mix-mute">Mute</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input id="mix-solo" class="form-check-input" type="checkbox">
+                                        <label class="form-check-label small" for="mix-solo">Solo</label>
+                                    </div>
+                                </div>
+                                <label class="form-label small mt-2">Pan</label>
+                                <input id="mix-pan" type="range" min="-1" max="1" step="0.01" class="form-range">
+                            </div>
+
+                            <!-- Sends -->
+                            <div class="col-12">
+                                <h6>Sends → Buses</h6>
+                                <div id="sends-grid" class="row g-2">
+                                    <!-- 16 casillas: level + on -->
+                                </div>
+                            </div>
+
+                            <!-- EQ (resumen, 4 bandas) -->
+                            <div class="col-12">
+                                <h6>EQ</h6>
+                                <div class="form-check form-switch mb-2">
+                                    <input id="eq-on" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label small" for="eq-on">EQ On</label>
+                                </div>
+                                <div id="eq-bandas" class="row g-2">
+                                    <!-- bandas 1..4: type,f,g,q -->
+                                </div>
+                            </div>
+
+                            <!-- Dinámica -->
+                            <div class="col-12 col-md-6">
+                                <h6>Gate</h6>
+                                <div class="form-check form-switch">
+                                    <input id="gate-on" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label small" for="gate-on">On</label>
+                                </div>
+                                <label class="form-label small">Threshold</label>
+                                <input id="gate-thr" type="range" min="-60" max="0" step="1" class="form-range">
+                                <label class="form-label small">Attack</label>
+                                <input id="gate-att" type="range" min="0.1" max="200" step="0.1" class="form-range">
+                                <label class="form-label small">Release</label>
+                                <input id="gate-rel" type="range" min="5" max="2000" step="5" class="form-range">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <h6>Compresor</h6>
+                                <div class="form-check form-switch">
+                                    <input id="dyn-on" class="form-check-input" type="checkbox">
+                                    <label class="form-check-label small" for="dyn-on">On</label>
+                                </div>
+                                <label class="form-label small">Threshold</label>
+                                <input id="dyn-thr" type="range" min="-60" max="0" step="1" class="form-range">
+                                <label class="form-label small">Ratio</label>
+                                <input id="dyn-ratio" type="range" min="1" max="20" step="0.1" class="form-range">
+                                <label class="form-label small">Makeup</label>
+                                <input id="dyn-makeup" type="range" min="0" max="24" step="0.5" class="form-range">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Master -->
+            <div class="col-12 col-lg-3">
+                <div class="card h-100">
+                    <div class="card-header">Master / Buses</div>
+                    <div class="card-body p-2">
+                        <div class="mb-3">
+                            <strong>Main LR</strong>
+                            <input id="main-fader" type="range" min="0" max="1" step="0.01" class="form-range">
+                            <div class="form-check form-switch">
+                                <input id="main-mute" class="form-check-input" type="checkbox">
+                                <label class="form-check-label small" for="main-mute">Mute</label>
+                            </div>
+                        </div>
+                        <hr>
+                        <div id="buses-list" class="row g-2">
+                            <!-- buses 1..16: fader+mute compactos -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="mb-4 d-flex gap-3">
-            <button class="btn btn-outline-primary btn-sm" onclick="resetearTodos()">Resetear todo</button>
-            <button class="btn btn-outline-danger btn-sm" onclick="mutearTodos()">Mute todos</button>
-            <button class="btn btn-outline-success btn-sm" onclick="desmutearTodos()">Unmute todos</button>
-        </div>
-
-
-        <div class="row" id="panelCanales">
-            <!-- Canales se insertan desde JS -->
-        </div>
-
-        <div class="mt-4">
-            <h5 class="text-muted">Últimos comandos enviados:</h5>
-            <ul id="logComandos" class="list-group small"></ul>
-        </div>
-
-        <hr>
-        <h5>Enviar comando OSC manual</h5>
-        <div class="mb-3">
-            <label for="rutaOsc" class="form-label">Ruta OSC</label>
-            <input type="text" class="form-control" id="rutaOsc" placeholder="/ch/01/mix/on">
-        </div>
-        <div class="mb-3">
-            <label for="valorOsc" class="form-label">Valor</label>
-            <input type="text" class="form-control" id="valorOsc" placeholder="1 o 0.75">
-        </div>
-        <button class="btn btn-primary" onclick="enviarComandoManual()">Enviar</button>
-        <div id="respuestaOsc" class="mt-2"></div>
-
-        <hr>
-        <h5>Enviar múltiples comandos OSC</h5>
-        <div class="mb-3">
-            <label for="comandosOsc" class="form-label">Comandos (uno por línea)</label>
-            <textarea class="form-control" id="comandosOsc" rows="6" placeholder="/ch/01/mix/on 1
-/ch/02/mix/fader 0.75"></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="enviarComandosMultiples()">Enviar todos</button>
-        <div id="respuestaComandosOsc" class="mt-2"></div>
-
     </div>
 
     <script src="/js/controlMesa.js"></script>
