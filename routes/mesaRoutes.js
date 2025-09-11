@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { enviarOSCConSala, leerOSCConSala, leerBatchOSCConSala } = require('../services/mesaOSC');
+const { getMetersSnapshot } = require('../services/mesaOSC');
 
 router.post('/osc', async (req, res) => {
   const { ruta, valor } = req.body;
@@ -27,6 +28,18 @@ router.post('/osc/batch', async (req, res) => {
   try {
     const data = await leerBatchOSCConSala(salaId, rutas);
     res.json({ ok: true, data });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ... al final, añade:
+router.get('/meters', (req, res) => {
+  const salaId = req.session?.user?.sala_id;
+  if (!salaId) return res.status(401).json({ error: 'No autenticado' });
+  try {
+    const snap = getMetersSnapshot(salaId);
+    res.json({ ok: true, data: snap });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

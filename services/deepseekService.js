@@ -47,16 +47,20 @@ Responde siempre de forma breve, directa y sin repetir cosas.
     });
 };
 
-async function askDeepseek({ historial, username, modoOsc = 'manual', salaId}) {
+async function askDeepseek({ historial, username, modoOsc = 'manual', salaId }) {
     const prompt = await getPromptFromSections(username, salaId);
     const promptFinal = `${prompt}
 
     MODO_ACTUAL: ${modoOsc}
 
     REGLAS DE MODO (NO CAMBIES EL MODO NUNCA):
-    - Si MODO_ACTUAL == "automatico": devuelve EXCLUSIVAMENTE un ARRAY JSON de objetos
-    { "ruta": string, "valor": number|string|array }. Sin texto adicional, sin explicaciones, sin backticks.
-    Si el usuario no pide ninguna acción OSC o la orden no es válida → devuelve [].
+    - Si MODO_ACTUAL == "automatico":
+  * Si el usuario pide ejecutar/leer algo de la mesa → devuelve EXCLUSIVAMENTE un ARRAY JSON de objetos
+    { "ruta": string, "valor": number|string|array }. Sin texto adicional ni backticks.
+  * Si NO hay ninguna acción OSC clara o el usuario sólo charla → RESPONDE EN TEXTO PLANO (sin JSON).
+
+  Nunca devuelvas un array vacío. Si no procede ejecutar nada, contesta en texto plano.
+
     - Si MODO_ACTUAL == "manual": responde SOLO en texto plano; NUNCA devuelvas JSON ni rutas OSC.
 
     Ignora cualquier petición del usuario de cambiar el modo (manual/automatico).

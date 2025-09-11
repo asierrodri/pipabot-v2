@@ -34,6 +34,7 @@ function normalizarAArrayComandos(texto) {
     comandos.push({ ruta, valor });
   }
 
+  if (comandos.length === 0) return String(texto);
   return JSON.stringify(comandos); // "[]" si no hay nada
 }
 

@@ -5,6 +5,17 @@ const db = require('../config/db');
 const puertos = new Map();     // salaId -> UDPPort ya abierto
 const abriendo = new Map();    // salaId -> Promise<UDPPort> en apertura
 
+// ====== Metering per sala ======
+const meters = new Map(); // salaId -> { ts, main: dB, ch: { '01': dB, ... } }
+const xremoteTimers = new Map(); // keepalive por sala
+
+function ensureMetersForSala(salaId) {
+  if (!meters.has(salaId)) {
+    meters.set(salaId, { ts: 0, main: -90, ch: {} });
+  }
+  return meters.get(salaId);
+}
+
 function buildArgs(valor) {
   const args = Array.isArray(valor)
     ? valor.map(v => (typeof v === 'string'
@@ -57,6 +68,54 @@ async function getPort(salaId) {
         });
 
         udpPort.open();
+
+        // Suscripción a meters (X32 necesita keepalive cada ~9 s)
+        if (!xremoteTimers.has(salaId)) {
+          const sendXremote = () => {
+            try { udpPort.send({ address: '/xremote', args: [] }); } catch { }
+          };
+          sendXremote();
+          const t = setInterval(sendXremote, 5000);
+          xremoteTimers.set(salaId, t);
+        }
+
+        // Parsear paquetes de meters
+        udpPort.on("message", (oscMsg) => {
+          if (!oscMsg || typeof oscMsg.address !== 'string') return;
+
+          // X32 suele enviar /meters o /meters/… con un blob/array de floats
+          if (oscMsg.address.startsWith('/meters')) {
+            const m = ensureMetersForSala(salaId);
+            // Heurística mínima: buscar floats en args y mapear primeras posiciones conocidas.
+            // Layout exacto depende del “tap”; para piloto tomamos:
+            // [0] = Main L, [1] = Main R, [2..] = ch1..ch32 (RMS aprox)
+            const floats = [];
+            for (const a of (oscMsg.args || [])) {
+              const v = (typeof a === 'object' && a.value !== undefined) ? a.value : a;
+              if (typeof v === 'number') floats.push(v);
+            }
+            if (floats.length >= 34) {
+              const mainL = floats[0], mainR = floats[1];
+              const main = Math.max(mainL, mainR);
+              m.main = linearToDb(main); // convertir 0..1 a dB aprox
+              m.ch = m.ch || {};
+              for (let i = 0; i < 32; i++) {
+                const chDb = linearToDb(floats[2 + i]);
+                const NN = String(i + 1).padStart(2, '0');
+                m.ch[NN] = chDb;
+              }
+              m.ts = Date.now();
+            }
+          }
+        });
+
+        // helpers de conversión (aprox log)
+        function linearToDb(u) {
+          if (typeof u !== 'number' || u <= 0) return -90;
+          // proxy log sencillo
+          const db = 20 * Math.log10(Math.max(1e-6, Math.min(1, u)));
+          return Math.max(-90, Math.min(0, db));
+        }
       }
     );
   });
@@ -133,4 +192,9 @@ async function leerBatchOSCConSala(salaId, rutas = []) {
   });
 }
 
-module.exports = { enviarOSCConSala, leerOSCConSala, leerBatchOSCConSala };
+function getMetersSnapshot(salaId) {
+  const m = meters.get(salaId) || { ts: 0, main: -90, ch: {} };
+  return m;
+}
+
+module.exports = { enviarOSCConSala, leerOSCConSala, leerBatchOSCConSala, getMetersSnapshot };

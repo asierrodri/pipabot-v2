@@ -1,8 +1,32 @@
+// --- Faders en dB (UI) ↔︎ unidad 0..1 (mesa) ---
+const FADER_DB_MIN = -90;
+const FADER_DB_MAX = 0;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const clampDb = (db) => clamp(db, FADER_DB_MIN, FADER_DB_MAX);
+const dbToUnit = (db) => (clampDb(db) - FADER_DB_MIN) / (FADER_DB_MAX - FADER_DB_MIN);   // -90→0, 0→1
+const unitToDb = (u) => FADER_DB_MIN + clamp(clamp(u, 0, 1), 0, 1) * (FADER_DB_MAX - FADER_DB_MIN);
+const looksLikeDb = (v) => typeof v === 'number' && v <= 0 && v >= -120;
+
 // ======== Config ========
 const NUM_CANALES = 16;   // sube a 32 cuando quieras
 const NUM_BUSES = 8;    // sube a 16 si usas todos
 const NUM_FXR = 4;    // FX returns visibles (opcional)
 const POLLING_MS = 400;  // refresco
+
+// ===== Auto Booster =====
+const AUTO_POLL_MS = 250;          // frecuencia de decisión
+const THRESH_DB = -35;             // umbral para "hay señal"
+const STEP_UP_DB = 0.5;            // cuánto subir por tick a canales activos
+const STEP_DOWN_DB = 0.25;         // cuánto bajar por tick a inactivos
+const CH_MAX_DB = -3;              // techo por canal (nunca > 0 dB; además limitamos a -3 dB)
+const MIN_HEADROOM_DB = -6;        // si el master está por encima de esto, no subimos (poca cabeza)
+
+// anti-pump & respeto a usuario
+const USER_TOUCH_MS = 3000;        // si el usuario tocó hace <3s, no tocamos
+const lastUserTouch = new Map();   // 'NN' -> timestamp ms
+
+let autoBoosterTimer = null;
+let autoBoosterEnabled = true;     // puedes colgarlo de un toggle UI si quieres
 
 // Helpers
 const pad2 = n => String(n).padStart(2, '0');
@@ -460,13 +484,15 @@ function buildBusesRight() {
         col.className = 'col-6';
         col.innerHTML = `
       <div class="border rounded p-2">
-        <div class="d-flex justify-content-between">
+        <div class="d-flex justify-content-between align-items-center">
           <strong>Bus ${b}</strong>
-          <div class="form-check form-switch m-0">
-            <input class="form-check-input bus-mute" data-bus="${BB}" type="checkbox" title="Mute">
-          </div>
+          <small class="text-muted" id="bus-${BB}-db">— dB</small>
         </div>
-        <input class="form-range bus-fader mt-1" data-bus="${BB}" type="range" min="0" max="1" step="0.01">
+        <input class="form-range bus-fader mt-1" data-bus="${BB}" type="range" min="-90" max="0" step="0.5">
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input bus-mute" data-bus="${BB}" type="checkbox" title="Mute">
+          <label class="form-check-label small">Mute</label>
+        </div>
       </div>
     `;
         cont.appendChild(col);
@@ -589,18 +615,115 @@ async function actualizarCanal() {
 async function actualizarMaster() {
     try {
         const data = await oscLeerBatch(rutasMaster());
-        setRange('#main-fader', data['/main/st/mix/fader']);
+
+        // Main
+        const mainRaw = data['/main/st/mix/fader'];
+        const mainDb = looksLikeDb(mainRaw) ? clampDb(mainRaw) : clampDb(unitToDb(mainRaw));
+        setRange('#main-fader', mainDb);
+        const mainLbl = document.getElementById('main-fader-db');
+        if (mainLbl && typeof mainDb === 'number') mainLbl.textContent = `${mainDb.toFixed(1)} dB`;
         setSwitch('#main-mute', (parseInt(data['/main/st/mix/on'], 10) === 0) ? 1 : 0, true);
 
+        // Buses
         for (let bb = 1; bb <= NUM_BUSES; bb++) {
             const BB = pad2(bb);
-            setRange(`.bus-fader[data-bus="${BB}"]`, data[`/bus/${BB}/mix/fader`]);
+            const busRaw = data[`/bus/${BB}/mix/fader`];
+            const busDb = looksLikeDb(busRaw) ? clampDb(busRaw) : clampDb(unitToDb(busRaw));
+            setRange(`.bus-fader[data-bus="${BB}"]`, busDb);
+            const lbl = document.getElementById(`bus-${BB}-db`);
+            if (lbl && typeof busDb === 'number') lbl.textContent = `${busDb.toFixed(1)} dB`;
+
             setSwitch(`.bus-mute[data-bus="${BB}"]`, (parseInt(data[`/bus/${BB}/mix/on`], 10) === 0) ? 1 : 0, true);
         }
-    } catch (e) { }
+    } catch (e) { /* silencio */ }
 }
 
 // Helpers de pintado
+async function leerFaderDbCanal(NN) {
+    const v = await leerValor(`/ch/${NN}/mix/fader`); // 0..1 o dB
+    const db = looksLikeDb(v) ? clampDb(v) : clampDb(unitToDb(v));
+    return db;
+}
+
+async function setFaderDbCanal(NN, dbTarget) {
+    const db = clampDb(Math.min(0, dbTarget));
+    const unit = dbToUnit(db);
+    await oscEnviar(`/ch/${NN}/mix/fader`, unit);
+}
+
+async function leerMainOn() {
+    const on = await leerValor(`/main/st/mix/on`);
+    return parseInt(on, 10) === 1; // 1=unmute
+}
+
+async function leerMuteCanal(NN) {
+    const on = await leerValor(`/ch/${NN}/mix/on`);
+    return parseInt(on, 10) === 0; // 0=mute → tratamos como muteado
+}
+
+async function tickAutoBooster() {
+    if (!autoBoosterEnabled) return;
+
+    try {
+        // 1) Mide master primero
+        const [mtr, mainOn] = await Promise.all([leerMeters(), leerMainOn()]);
+        const mainDb = mtr.main ?? -90;
+        if (!mainOn) return;                 // master mute → no tocamos
+        if (mainDb > MIN_HEADROOM_DB) return; // muy alto el master → no subir nada
+
+        // 2) Detecta canales activos
+        const activos = [];
+        for (let i = 1; i <= NUM_CANALES; i++) {
+            const NN = pad2(i);
+            const lev = mtr.ch?.[NN] ?? -90;
+            if (lev >= THRESH_DB) activos.push({ NN, lev });
+        }
+
+        // 3) Subir activos (rate-limited) y bajar inactivos
+        //    Para evitar saltos, limitamos a p.ej. top 4 por tick
+        const now = Date.now();
+        const top = activos.sort((a, b) => b.lev - a.lev).slice(0, 4).map(a => a.NN);
+        const ajustes = [];
+
+        // Sube top activos
+        for (const NN of top) {
+            // respeta toques recientes y mute
+            const touched = lastUserTouch.get(NN) || 0;
+            if (now - touched < USER_TOUCH_MS) continue;
+            if (await leerMuteCanal(NN)) continue;
+
+            const db = await leerFaderDbCanal(NN);
+            const target = Math.min(CH_MAX_DB, db + STEP_UP_DB);
+            if (target > db) ajustes.push(setFaderDbCanal(NN, target));
+        }
+
+        // Baja inactivos (un pequeño “fall”)
+        for (let i = 1; i <= NUM_CANALES; i++) {
+            const NN = pad2(i);
+            if (top.includes(NN)) continue; // ya subimos arriba
+            const touched = lastUserTouch.get(NN) || 0;
+            if (now - touched < USER_TOUCH_MS) continue;
+            if (await leerMuteCanal(NN)) continue;
+
+            const lev = mtr.ch?.[NN] ?? -90;
+            if (lev < THRESH_DB - 5) { // margen extra para no oscilar
+                const db = await leerFaderDbCanal(NN);
+                const target = db - STEP_DOWN_DB;
+                ajustes.push(setFaderDbCanal(NN, target));
+            }
+        }
+
+        await Promise.allSettled(ajustes);
+    } catch (e) {
+        // silencioso; si no hay meters aún, seguimos en el siguiente tick
+    }
+}
+
+function iniciarAutoBooster() {
+    if (autoBoosterTimer) clearInterval(autoBoosterTimer);
+    autoBoosterTimer = setInterval(tickAutoBooster, AUTO_POLL_MS);
+}
+
 function setRange(sel, val, mapFn = v => v) {
     const el = document.querySelector(sel);
     if (!el) return;
@@ -639,6 +762,7 @@ function wireInputsCanal() {
     // Mix
     document.getElementById('mix-fader')?.addEventListener('input', e => {
         oscEnviar(`/ch/${canalActivo}/mix/fader`, parseFloat(e.target.value));
+        lastUserTouch.set(canalActivo, Date.now());
     });
     document.getElementById('mix-mute')?.addEventListener('change', e => {
         // switch mute: checked=true ⇒ queremos on=0
@@ -698,8 +822,13 @@ function wireInputsCanal() {
 
 function wireInputsMaster() {
     document.getElementById('main-fader')?.addEventListener('input', e => {
-        oscEnviar(`/main/st/mix/fader`, parseFloat(e.target.value));
+        const db = clampDb(parseFloat(e.target.value));     // nunca > 0 dB
+        const unit = dbToUnit(db);
+        oscEnviar(`/main/st/mix/fader`, unit);
+        const lbl = document.getElementById('main-fader-db');
+        if (lbl) lbl.textContent = `${db.toFixed(1)} dB`;
     });
+
     document.getElementById('main-mute')?.addEventListener('change', e => {
         const on = e.target.checked ? 0 : 1;
         oscEnviar(`/main/st/mix/on`, on);
@@ -708,9 +837,15 @@ function wireInputsMaster() {
     document.querySelectorAll('.bus-fader').forEach(el => {
         el.addEventListener('input', e => {
             const BB = e.target.dataset.bus;
-            oscEnviar(`/bus/${BB}/mix/fader`, parseFloat(e.target.value));
+            const db = clampDb(parseFloat(e.target.value));
+            const unit = dbToUnit(db);
+            oscEnviar(`/bus/${BB}/mix/fader`, unit);
+            const lbl = document.getElementById(`bus-${BB}-db`);
+            if (lbl) lbl.textContent = `${db.toFixed(1)} dB`;
+            lastUserTouch.set(canalActivo, Date.now());
         });
     });
+
     document.querySelectorAll('.bus-mute').forEach(el => {
         el.addEventListener('change', e => {
             const BB = e.target.dataset.bus;
@@ -720,8 +855,17 @@ function wireInputsMaster() {
     });
 }
 
+async function leerMeters() {
+    const res = await fetch('/mesa/meters');
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'Meters no disponibles');
+    return json.data; // { ts, main: dB, ch: { '01': dB, ... } }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  iniciarPanel();
-  actualizarOverview();
-  actualizarMaster();
+    iniciarPanel();
+    actualizarOverview();
+    actualizarMaster();
+    iniciarAutoBooster(); // ⬅️ aquí
 });
+
