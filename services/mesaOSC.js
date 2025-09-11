@@ -108,7 +108,7 @@ async function leerBatchOSCConSala(salaId, rutas = []) {
     const to = setTimeout(() => {
       udpPort.removeListener('message', onMsg);
       resolve(resultados);
-    }, 2000); // timeout total
+    }, 200); // timeout total
 
     function onMsg(oscMsg) {
       const addr = oscMsg?.address;

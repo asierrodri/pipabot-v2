@@ -2,7 +2,7 @@
 const NUM_CANALES = 16;   // sube a 32 cuando quieras
 const NUM_BUSES = 8;    // sube a 16 si usas todos
 const NUM_FXR = 4;    // FX returns visibles (opcional)
-const POLLING_MS = 800;  // refresco
+const POLLING_MS = 400;  // refresco
 
 // Helpers
 const pad2 = n => String(n).padStart(2, '0');
@@ -329,7 +329,7 @@ async function cargarEstadoInicial() {
         tareas.push(cargarEstadoCanal(canal));
     }
     await Promise.all(tareas);
-} */
+} 
 
 // 🔁 Refresco periódico (simple). Ajusta el intervalo si lo necesitas.
 let refrescoTimer = null;
@@ -343,7 +343,7 @@ function iniciarRefresco(ms = 1000) {
         }
     }, ms);
 }
-
+*/
 async function oscLeerBatch(rutas) {
     const res = await fetch('/mesa/osc/batch', {
         method: 'POST',
