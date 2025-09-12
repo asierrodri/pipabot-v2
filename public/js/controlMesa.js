@@ -545,7 +545,12 @@ async function actualizarOverview() {
             const name = data[`/ch/${NN}/config/name`];
             const color = data[`/ch/${NN}/config/color`];
 
-            li.querySelector('.fader-badge').textContent = (typeof fader === 'number' ? fader.toFixed(2) : '--');
+            if (typeof fader === 'number') {
+                const db = looksLikeDb(fader) ? clampDb(fader) : clampDb(unitToDb(fader));
+                li.querySelector('.fader-badge').textContent = `${db.toFixed(1)} dB`;
+            } else {
+                li.querySelector('.fader-badge').textContent = '--';
+            }
             const badge = li.querySelector('.estado-mute');
             const isOn = parseInt(on, 10) === 1;
             badge.textContent = isOn ? 'ON' : 'MUTE';
@@ -573,8 +578,12 @@ async function actualizarCanal() {
         setSwitch('#preamp-phantom', data[`/ch/${NN}/preamp/phantom`]);
         setSwitch('#preamp-invert', data[`/ch/${NN}/preamp/invert`]);
 
-        // Mix
-        setRange('#mix-fader', data[`/ch/${NN}/mix/fader`]);
+        // Mix (fader a dB, UI en dB)
+        {
+            const raw = data[`/ch/${NN}/mix/fader`];
+            const db = looksLikeDb(raw) ? clampDb(raw) : clampDb(unitToDb(raw));
+            setRange('#mix-fader', db);
+        }
         setSwitch('#mix-mute', (parseInt(data[`/ch/${NN}/mix/on`], 10) === 0) ? 1 : 0, true); // switch "mute": checked=true cuando on=0
         setSwitch('#mix-solo', data[`/ch/${NN}/mix/solo`]);
         setRange('#mix-pan', data[`/ch/${NN}/mix/pan`]);
@@ -759,11 +768,6 @@ function wireInputsCanal() {
         oscEnviar(`/ch/${canalActivo}/preamp/invert`, e.target.checked ? 1 : 0);
     });
 
-    // Mix
-    document.getElementById('mix-fader')?.addEventListener('input', e => {
-        oscEnviar(`/ch/${canalActivo}/mix/fader`, parseFloat(e.target.value));
-        lastUserTouch.set(canalActivo, Date.now());
-    });
     document.getElementById('mix-mute')?.addEventListener('change', e => {
         // switch mute: checked=true ⇒ queremos on=0
         const on = e.target.checked ? 0 : 1;
@@ -818,6 +822,15 @@ function wireInputsCanal() {
             oscEnviar(`/ch/${canalActivo}/mix/${BB}/on`, e.target.checked ? 1 : 0);
         });
     });
+
+    // controlMesa.js → wireInputsCanal(), handler de #mix-fader
+    document.getElementById('mix-fader')?.addEventListener('input', e => {
+        const db = clampDb(parseFloat(e.target.value));     // nunca > 0 dB
+        const unit = dbToUnit(db);
+        oscEnviar(`/ch/${canalActivo}/mix/fader`, unit);
+        lastUserTouch.set(canalActivo, Date.now());
+    });
+
 }
 
 function wireInputsMaster() {

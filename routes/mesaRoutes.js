@@ -18,6 +18,23 @@ router.post('/osc', async (req, res) => {
   }
 });
 
+// mesaRoutes.js  (añádelo debajo del POST /osc)
+router.get('/osc', async (req, res) => {
+  const salaId = req.session?.user?.sala_id;
+  if (!salaId) return res.status(401).json({ ok: false, error: 'No autenticado' });
+
+  const ruta = req.query?.ruta;
+  if (!ruta) return res.status(400).json({ ok: false, error: 'Falta la ruta OSC' });
+
+  try {
+    const valor = await leerOSCConSala(salaId, ruta);
+    res.json({ ok: true, valor });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 // ✅ batch GET
 router.post('/osc/batch', async (req, res) => {
   const salaId = req.session?.user?.sala_id;

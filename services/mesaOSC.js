@@ -124,12 +124,34 @@ async function getPort(salaId) {
   return prom;
 }
 
+// mesaOSC.js
+function clamp01(x) { return Math.max(0, Math.min(1, Number(x) || 0)); }
+function dbToUnitLinear(db) { // mapeo simple -90..0 → 0..1 (aprox)
+  const clamped = Math.max(-90, Math.min(0, Number(db) || -90));
+  return (clamped + 90) / 90;
+}
+function isLikelyDb(v) { return typeof v === 'number' && v <= 0 && v >= -120; }
+
 async function enviarOSCConSala(salaId, ruta, valor) {
   const udpPort = await getPort(salaId);
+
+  // Normaliza faders
+  if (typeof ruta === 'string' && ruta.endsWith('/mix/fader')) {
+    let unit;
+    if (isLikelyDb(valor)) {
+      unit = dbToUnitLinear(valor);
+    } else {
+      unit = clamp01(valor);
+    }
+    // 0 dB real en X32 ~ 0.75. Clampa para no pasar de 0 dB.
+    valor = Math.min(unit, 0.75);
+  }
+
   const args = buildArgs(valor);
   console.log(`🔁 [sala ${salaId}] ${ruta} → ${JSON.stringify(args)}`);
   udpPort.send({ address: ruta, args });
 }
+
 
 async function leerOSCConSala(salaId, ruta) {
   const udpPort = await getPort(salaId);
