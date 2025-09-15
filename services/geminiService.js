@@ -46,7 +46,7 @@ Responde siempre de forma breve, directa y sin repetir cosas.
 };
 
 // Función principal para enviar conversación a Gemini
-const askGemini = async ({ historial, username, modoOsc = 'manual', salaId}) => {
+const askGemini = async ({ historial, username, modoOsc = 'manual', salaId }) => {
   const prompt = await getPromptFromSections(username, salaId);
   const promptFinal = `${prompt}
 
@@ -88,39 +88,37 @@ const askGemini = async ({ historial, username, modoOsc = 'manual', salaId}) => 
   return response.data.candidates[0].content.parts[0].text;
 };
 
-const { askDeepseek } = require('./deepseekService');
 
-const generarTitulo = async (historial, username = 'Usuario') => {
-  const intro = `Genera un título breve y descriptivo para esta conversación. No uses comillas ni puntuación innecesaria. Máximo 100 caracteres.`;
+const generarTitulo = async (historial = [], username = 'Usuario') => {
+  const intro = 'Genera un título breve y descriptivo para esta conversación. No uses comillas ni puntuación innecesaria. Máximo 100 caracteres.';
+  const resumen = (historial || [])
+    .slice(0, 2)
+    .map(m => `${m.role === 'user' ? 'Usuario' : 'Bot'}: ${m.text}`)
+    .join('\n');
 
-  const resumen = historial.slice(0, 2).map(m =>
-    `${m.role === 'user' ? 'Usuario' : 'Bot'}: ${m.text}`
-  ).join('\n');
+  const contents = [
+    { role: 'user', parts: [{ text: `${intro}\n\n${resumen}` }] }
+  ];
 
-  const modelo = process.env.MODEL_PROVIDER || 'GEMINI';
-
-  if (modelo.toUpperCase() === 'DEEPSEEK') {
-    const resumenHistorial = [
-      { role: 'user', text: `${intro}\n\n${resumen}` }
-    ];
-
-    const respuesta = await askDeepseek({
-      historial: resumenHistorial,
-      username,
-      modoOsc: 'manual'
-    });
-
-    return respuesta?.trim().slice(0, 100) || 'Sin título';
-  }
-  else {
-    const contents = [
+  try {
+    const resp = await axios.post(
+      GEMINI_API_URL,
+      { contents },
       {
-        role: 'user',
-        parts: [{ text: `${intro}\n\n${resumen}` }]
+        headers: {
+          'Content-Type': 'application/json',
+          // Usa esta cabecera si tu GEMINI_API_URL NO lleva ?key=...
+          'x-goog-api-key': process.env.GEMINI_API_KEY
+        }
       }
-    ];
-    const response = await axios.post(GEMINI_API_URL, { contents });
-    return response.data.candidates[0].content.parts[0].text.trim().slice(0, 100);
+    );
+    const texto = resp?.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return (texto || 'Sin título').trim().replace(/^["'«»]+|["'«»]+$/g, '').slice(0, 100) || 'Sin título';
+  } catch (e) {
+    console.error('⚠️ Error generando título con Gemini:', e.response?.data || e.message);
+    // Fallback: primera línea del historial
+    const fallback = (resumen.split('\n')[0] || 'Conversación').slice(0, 100);
+    return fallback || 'Sin título';
   }
 };
 
