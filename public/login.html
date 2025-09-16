@@ -1,35 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Iniciar sesión - PipaBot</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PipaBot — Control de salas</title>
+  <meta name="description" content="Controla tu mesa por salas con PipaBot. Inicia sesión o regístrate.">
   <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --surface: #0f1524;
+      --card: #0c1222;
+      --line: #22304f;
+      --text: #e5e7eb;
+      --muted: #a0a8bd;
+      --brand: #ff6b00;
+      --brand-2: #ff9a3c;
+      --ok: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 80% -10%, #1a2235 0%, #0b0f1a 55%) no-repeat,
+        var(--bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    }
+
+    /* NAV */
+    .nav-blur {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px) saturate(140%);
+      background: rgba(10, 16, 32, .6);
+      border-bottom: 1px solid #1b2743;
+    }
+
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      display: grid;
+      place-items: center;
+      color: #111;
+      font-weight: 900;
+      box-shadow: 0 6px 18px rgba(255, 107, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .2);
+    }
+
+    .btn-brand {
+      background: var(--brand);
+      border: 1px solid #ff7a1f;
+      color: #111;
+      font-weight: 700;
+      border-radius: 14px;
+      padding: .8rem 1.1rem;
+      box-shadow: 0 10px 24px rgba(255, 107, 0, .22);
+    }
+
+    .btn-ghost {
+      color: var(--text);
+      border: 1px solid #2a375c;
+      background: transparent;
+      border-radius: 14px;
+      padding: .8rem 1.1rem;
+    }
+
+    .btn-brand:hover {
+      transform: translateY(-1px)
+    }
+
+    .btn-ghost:hover {
+      background: #121a32
+    }
+
+    /* HERO */
+    .hero {
+      padding: 64px 0 24px
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 34px;
+      align-items: center
+    }
+
+    @media (max-width: 992px) {
+      .hero-grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .kicker {
+      display: inline-block;
+      font-size: .85rem;
+      color: #ffe6d6;
+      background: rgba(255, 107, 0, .12);
+      border: 1px solid rgba(255, 107, 0, .3);
+      padding: .28rem .6rem;
+      border-radius: 999px;
+    }
+
+    .hero h1 {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1.05;
+      margin: 14px 0 10px
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: clamp(15px, 1.7vw, 18px)
+    }
+
+    .demo-card {
+      background: linear-gradient(180deg, #121a2a, #0f1524);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 28px rgba(2, 6, 23, .45), inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    .tile {
+      background: #0c1222;
+      border: 1px solid #263043;
+      border-radius: 14px;
+      padding: 14px
+    }
+
+    .tile h3 {
+      font-size: 1rem;
+      margin: 0 0 6px
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    a.link-muted {
+      color: var(--brand);
+      text-decoration: none
+    }
+
+    a.link-muted:hover {
+      text-decoration: underline
+    }
+
+    /* FEATURES */
+    .section {
+      padding: 56px 0
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid #1f2b49;
+      border-radius: 18px;
+      padding: 18px;
+      height: 100%;
+    }
+
+    .feature-card h5 {
+      margin: 0 0 6px
+    }
+
+    .pill {
+      display: inline-block;
+      font-size: .75rem;
+      padding: .2rem .55rem;
+      border-radius: 999px;
+      border: 1px solid #2b3858;
+      color: #aab4c8
+    }
+
+    /* LOGIN BOX */
+    .login-wrap {
+      background: linear-gradient(180deg, #0f1524, #0c1222);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      max-width: 460px;
+      margin-inline: auto;
+      box-shadow: 0 12px 28px rgba(2, 6, 23, .45), inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    .form-label {
+      color: #c7d2fe
+    }
+
+    .form-control {
+      background: #0a1020;
+      border: 1px solid #293657;
+      color: var(--text);
+      padding: .95rem .95rem;
+      border-radius: 12px;
+    }
+
+    .form-control:focus {
+      border-color: #3a4e7f;
+      box-shadow: 0 0 0 .2rem rgba(58, 78, 127, .35);
+    }
+
+    .response {
+      min-height: 1.25rem;
+      font-size: .95rem;
+      margin-top: .5rem
+    }
+
+    .response.ok {
+      color: var(--ok)
+    }
+
+    .response.err {
+      color: var(--danger)
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 32px 0;
+      color: #9aa3b6;
+      border-top: 1px solid #1b2743
+    }
+  </style>
 </head>
 
-<body class="bg-light">
-  <div class="container mt-5" style="max-width: 400px;">
-    <h2 class="text-center mb-4">Iniciar sesión</h2>
-    <form id="loginForm">
-      <div class="mb-3">
-        <label for="username" class="form-label">Usuario</label>
-        <input type="text" class="form-control" id="username" required>
-      </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Contraseña</label>
-        <input type="password" class="form-control" id="password" required>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Entrar</button>
-      <p class="mt-3 text-center">
-        ¿No tienes cuenta? <a href="/registro.html">Regístrate</a>
-      </p>
+<body>
 
-    </form>
-    <div id="loginResponse" class="mt-3 text-center"></div>
-  </div>
+  <!-- NAV -->
+  <nav class="nav-blur">
+    <div class="container d-flex align-items-center justify-content-between py-3">
+      <div class="d-flex align-items-center gap-2">
+        <div class="brand-badge">🎛</div>
+        <strong>PipaBot</strong>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-ghost" href="#features">Características</a>
+        <a class="btn btn-brand" href="#login">Entrar</a>
+      </div>
+    </div>
+  </nav>
 
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="kicker">Control de salas fácil y seguro</span>
+        <h1>Gestiona tu mesa <span style="color:var(--brand)">en segundos</span></h1>
+        <p class="lead">Centraliza la lectura y el control de tu mesa (mute, faders, master…) con una interfaz rápida.
+          Inicia sesión para acceder a tu sala o regístrate si aún no tienes cuenta.</p>
+        <div class="d-flex gap-2 mt-3">
+          <a class="btn btn-brand" href="#login">Entrar ahora</a>
+          <a class="btn btn-ghost" href="/registro.html">Registrar sala</a>
+        </div>
+        <p class="muted mt-2">¿No tienes cuenta? <a class="link-muted" href="/registro.html">Regístrate</a></p>
+      </div>
+
+      <div class="demo-card">
+        <div class="d-flex gap-2 mb-2">
+          <span class="pill">Lectura en tiempo real</span>
+          <span class="pill">Acciones OSC</span>
+          <span class="pill">Multi-sala</span>
+        </div>
+        <div class="tiles">
+          <div class="tile">
+            <h3>Snapshot de niveles</h3>
+            <p class="muted mb-0">Visualiza picos, mute y faders sin rebotes.</p>
+          </div>
+          <div class="tile">
+            <h3>Control seguro</h3>
+            <p class="muted mb-0">Roles por usuario y sala, sesión en servidor.</p>
+          </div>
+          <div class="tile">
+            <h3>Integración directa</h3>
+            <p class="muted mb-0">Encaja con tus rutas actuales de login/registro.</p>
+          </div>
+          <div class="tile">
+            <h3>Listo para producción</h3>
+            <p class="muted mb-0">Rápido, accesible y responsive.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <section id="login" class="section">
+    <div class="container">
+      <div class="login-wrap">
+        <h2 class="h4 mb-3 text-center">Inicia sesión</h2>
+        <form id="loginForm" novalidate>
+          <div class="mb-3">
+            <label for="username" class="form-label">Usuario</label>
+            <input id="username" type="text" class="form-control" placeholder="tuusuario" required>
+          </div>
+          <div class="mb-2">
+            <label for="password" class="form-label">Contraseña</label>
+            <input id="password" type="password" class="form-control" placeholder="••••••••" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-brand w-100 mt-2">Entrar</button>
+          <div id="loginResponse" class="response" role="status" aria-live="polite"></div>
+          <div class="d-flex justify-content-between mt-2">
+            <a class="link-muted" href="/registro.html">¿No tienes cuenta? Regístrate</a>
+            <a class="link-muted" href="#login">¿Olvidaste la contraseña?</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="section">
+    <div class="container">
+      <h3 class="h4 text-center mb-4">¿Por qué usar PipaBot?</h3>
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="feature-card h-100">
+            <h5>🎤 Control por voz</h5>
+            <p class="muted mb-0">Haz preguntas y controla tu mesa con comandos de voz.</p>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="feature-card h-100">
+            <h5>⚡ Respuestas rápidas</h5>
+            <p class="muted mb-0">Consulta en tiempo real el estado de canales y niveles.</p>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="feature-card h-100">
+            <h5>👥 Multi-sala</h5>
+            <p class="muted mb-0">Gestiona varias salas y usuarios con roles distintos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container text-center small">
+      © <span id="year"></span> PipaBot · Proyecto desarrollado por Asier
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <!-- Mantiene tu JS actual (usa #username, #password y #loginResponse y POST a /auth/login) -->
   <script src="js/login.js"></script>
 </body>
 
