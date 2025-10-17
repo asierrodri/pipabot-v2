@@ -83,16 +83,22 @@ pipabot-v2/
 └── utils/
     ├── hash.js             # Utilidad temporal para generar hashes bcrypt
     └── x32-mock.js         # Simulador local de la mesa para pruebas
+```
 ⚙️ Instalación y configuración
 1️⃣ Clonar el repositorio
-bash
-Copiar código
+
+```bash
 git clone https://github.com/asierrodri/pipabot-v2.git
 cd pipabot-v2
+```
+
 2️⃣ Instalar dependencias
-bash
-Copiar código
+
+```bash
+
 npm install
+
+```
 3️⃣ Crear base de datos
 En MySQL:
 
