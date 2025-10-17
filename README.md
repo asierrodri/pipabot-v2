@@ -130,19 +130,23 @@ MESA_PORT=10023
 
 O usa el ejemplo:
 
-bash
-Copiar código
+```bash
 cp .env.example .env
-5️⃣ Ejecutar el servidor
-bash
-Copiar código
+```
+
+### 5️⃣ Ejecutar el servidor
+
+```bash
 node index.js
+```
+
 Por defecto escuchará en:
 
-arduino
-Copiar código
+```arduino
 http://localhost:3000
-🧑‍💼 Roles y acceso
+```
+
+## 🧑‍💼 Roles y acceso
 Rol	Permisos
 Admin	Gestiona usuarios, prompts y puede cambiar el modo OSC.
 User	Usa el chat, ve historiales, interactúa con la IA.
