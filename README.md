@@ -107,14 +107,14 @@ CREATE DATABASE pipabot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 Luego importar:
 
-bash
-Copiar código
+```bash
 mysql -u root -p pipabot < pipabot.sql
-4️⃣ Configurar variables de entorno
+```
+
+### 4️⃣ Configurar variables de entorno
 Crea un archivo .env en la raíz del proyecto (no se sube al repo) con tus claves y datos locales:
 
-env
-Copiar código
+```env
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
@@ -126,6 +126,8 @@ RECAPTCHA_SECRET_KEY=tu_clave
 
 MESA_IP=192.168.1.100
 MESA_PORT=10023
+```
+
 O usa el ejemplo:
 
 bash
